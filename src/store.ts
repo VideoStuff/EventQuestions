@@ -1,6 +1,6 @@
 // Everything is kept in this browser (localStorage) and can be saved to / opened from files.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { seedBank } from "./seed";
+import { migrateBank, seedBank } from "./seed";
 import { newWall, sanitizeWalls } from "./led";
 import { newId, type Answer, type Bank, type Category, type Question, type Show, type ShowMeta } from "./types";
 
@@ -18,7 +18,7 @@ function load(): { data: Data; storage: StorageState } {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const d = JSON.parse(raw) as Data;
-      if (d?.bank?.categories && Array.isArray(d.shows)) return { data: d, storage: "ok" };
+      if (d?.bank?.categories && Array.isArray(d.shows)) return { data: { ...d, bank: migrateBank(d.bank) }, storage: "ok" };
     }
     localStorage.setItem("show-sheets:probe", "1");
     localStorage.removeItem("show-sheets:probe");

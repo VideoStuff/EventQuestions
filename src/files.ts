@@ -1,5 +1,6 @@
 // Saving shows to .json files and opening them again.
 import { cleanAnswers, cleanCategory, cleanMeta, cleanQuestion, sanitizeWalls, type Data } from "./store";
+import { migrateBank } from "./seed";
 import { newId, questionsFor, type Bank, type Category, type Question, type Show } from "./types";
 
 const APP = "show-sheets";
@@ -112,7 +113,8 @@ export async function readFile(f: File): Promise<Parsed> {
 }
 
 /** Add categories/questions from a file that this browser doesn't have; update wording of ones it has. */
-export function mergeBank(bank: Bank, incoming: Bank): Bank {
+export function mergeBank(bank: Bank, raw: Bank): Bank {
+  const incoming = migrateBank({ categories: raw.categories ?? [], questions: raw.questions ?? [] });
   const cats = [...bank.categories];
   const catMap = new Map<string, string>();
   for (const raw of incoming.categories ?? []) {
