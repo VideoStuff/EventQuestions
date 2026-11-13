@@ -4,6 +4,7 @@ import ShowList from "./components/ShowList";
 import ShowEditor from "./components/ShowEditor";
 import QuestionsPage from "./components/QuestionsPage";
 import PrintView from "./components/PrintView";
+import { APP_VERSION } from "./version";
 
 export default function App() {
   const { data, storage, update } = useData();
@@ -21,7 +22,7 @@ export default function App() {
     <>
       <header className="topbar no-print">
         <nav className="wide row">
-          <a href="#/" className="brand">Show Sheets</a>
+          <a href="#/" className="brand">Show Sheets <span className="version">v{APP_VERSION}</span></a>
           <a href="#/">Shows</a>
           <a href="#/questions">Questions</a>
           {page === "show" && show && <span className="muted small crumb">{show.meta.op_number || show.meta.name}</span>}

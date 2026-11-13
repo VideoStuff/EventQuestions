@@ -4,6 +4,9 @@ The owner is not a developer: explain changes in plain language.
 
 - The app is built from `src/` into one self-contained file, `docs/index.html`, which GitHub Pages serves and
   which the owner can also open offline. After any change run `npm run build` and commit `docs/index.html` too.
+- **Every update raises the version** (owner's standing request): bump `version` in `package.json`
+  (`1.3.0` → `1.4.0`; it shows as "v1.4" at the top of the app) and add a row to the Versions table in
+  `README.md`. Use a patch number (`1.4.1`) only for small fixes.
 - There is no server. Data lives in the browser (localStorage key `show-sheets:v1`) and in downloaded `.json`
   files (`src/files.ts`). Keep old files opening: if the file format changes, raise `VERSION` and handle older
   versions when reading.

@@ -1,4 +1,5 @@
 import { aspect, calcWall, fmt, ftIn, meters, totals, PANEL_OPTIONS } from "../led";
+import { APP_VERSION } from "../version";
 import { questionsFor, type Bank, type Show } from "../types";
 import { calcScreen, fitToWidth, sizeMeters, sizeText } from "../projection";
 
@@ -110,7 +111,7 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
           </section>
         );
       })}
-      <p className="muted small">Printed {new Date().toISOString().slice(0, 10)}</p>
+      <p className="muted small">Printed {new Date().toISOString().slice(0, 10)} · Show Sheets v{APP_VERSION}</p>
     </div>
   );
 }

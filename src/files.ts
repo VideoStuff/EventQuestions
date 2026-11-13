@@ -1,6 +1,7 @@
 // Saving shows to .json files and opening them again.
 import { cleanAnswers, cleanCategory, cleanMeta, cleanQuestion, sanitizeScreens, sanitizeWalls, type Data } from "./store";
 import { migrateBank } from "./seed";
+import { APP_VERSION } from "./version";
 import { newId, questionsFor, type Bank, type Category, type Question, type Show } from "./types";
 
 const APP = "show-sheets";
@@ -10,6 +11,8 @@ interface ShowFile {
   app: typeof APP;
   type: "show";
   version: number;
+  /** App version that saved the file, e.g. "1.3". */
+  appVersion?: string;
   exportedAt: string;
   show: Omit<Show, "extra" | "downloadedAt">;
   /** Categories and questions on this sheet, so the file opens complete on any computer. */
@@ -20,6 +23,7 @@ interface BackupFile {
   app: typeof APP;
   type: "backup";
   version: number;
+  appVersion?: string;
   exportedAt: string;
   bank: Bank;
   shows: ShowFile[];
@@ -28,6 +32,7 @@ interface QuestionsFile {
   app: typeof APP;
   type: "questions";
   version: number;
+  appVersion?: string;
   exportedAt: string;
   bank: Bank;
 }
@@ -60,6 +65,7 @@ function toShowFile(show: Show, bank: Bank): ShowFile {
     app: APP,
     type: "show",
     version: VERSION,
+    appVersion: APP_VERSION,
     exportedAt: new Date().toISOString(),
     show: { id: show.id, meta: show.meta, answers: show.answers, walls: show.walls, screens: show.screens, createdAt: show.createdAt, updatedAt: show.updatedAt },
     categories: bank.categories.filter((c) => catIds.has(c.id) || !!c.special),
@@ -74,6 +80,7 @@ export const downloadBackup = (data: Data) =>
     app: APP,
     type: "backup",
     version: VERSION,
+    appVersion: APP_VERSION,
     exportedAt: new Date().toISOString(),
     bank: data.bank,
     shows: data.shows.map((s) => toShowFile(s, data.bank)),
@@ -84,6 +91,7 @@ export const downloadQuestions = (bank: Bank) =>
     app: APP,
     type: "questions",
     version: VERSION,
+    appVersion: APP_VERSION,
     exportedAt: new Date().toISOString(),
     bank,
   } satisfies QuestionsFile);

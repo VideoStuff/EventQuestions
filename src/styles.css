@@ -204,3 +204,4 @@ table.walls th, table.walls td { border: 1px solid var(--border); padding: 4px 6
 .span2 { grid-column: span 2; }
 .screen-inputs label { font-size: 0.875rem; }
 .fit-warn { color: var(--text); border-left: 3px solid var(--warn); padding-left: 8px; }
+.version { font-weight: 500; font-size: 0.75rem; color: var(--muted); margin-left: 4px; }

@@ -36,6 +36,17 @@ The sidebar on each show says whether the latest changes have been downloaded, a
 - The **Questions** page edits the list every show uses: wording, question vs. checklist item, category, order, archive; and add, rename, reorder or delete categories.
 - **Download list** / **Load list** on the Questions page move your question list to another computer. Loading adds and updates questions; it never removes any.
 
+## Versions
+
+The version number shows next to **Show Sheets** at the top of every page, on printouts, and inside saved files.
+
+| Version | Changes |
+|---|---|
+| v1.3 | Version number shown at the top of the app and on printouts. |
+| v1.2 | Projection screen planner: multiple screens, common sizes or exact size in feet, projector resolution, apparent width in pixels. |
+| v1.1 | FOH and Video Village split into separate categories. |
+| v1.0 | Browser-only app: shows kept in the browser, downloaded as show files and opened again on any computer. |
+
 ## For developers
 
 Built with React + TypeScript and Vite, bundled into the single file `docs/index.html` (GitHub Pages serves `/docs`).
