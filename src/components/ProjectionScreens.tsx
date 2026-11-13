@@ -1,9 +1,9 @@
-import { fmt } from "../led";
+import { fmt, ftIn } from "../led";
 import {
   PROJECTORS,
   SCREEN_SIZES,
+  MIN_OVERLAP,
   calcScreen,
-  fitToWidth,
   newScreen,
   presetFor,
   sizeMeters,
@@ -129,9 +129,25 @@ function ScreenCard({
               <dd>{fmt(c.projW)} × {fmt(c.projH)}</dd>
               <dd className="muted small">{c.pxPerFt.toFixed(1)} px per ft</dd>
             </div>
+            <div className="hero">
+              <dt>Projectors</dt>
+              <dd>{c.projectors}{c.qty > 1 && <span className="muted small"> per screen · {c.projectors * c.qty} total</span>}</dd>
+              {c.projectors === 1 && c.apparentW < c.projW && (
+                <dd className="muted small">Uses {fmt(c.apparentW)} of {fmt(c.projW)} px wide</dd>
+              )}
+            </div>
+            {c.projectors > 1 && (
+              <div className="hero">
+                <dt>Overlap{c.projectors > 2 ? ` (each of ${c.projectors - 1} blends)` : ""}</dt>
+                <dd>{fmt(c.overlapPx)} px</dd>
+                <dd className="muted small">{ftIn(c.overlapMm)} · {((c.overlapMm / 304.8)).toFixed(2)} ft · {Math.round((c.overlapPx / c.projW) * 100)}% of a projector</dd>
+              </div>
+            )}
             {c.qty > 1 && <div><dt>Quantity</dt><dd>{c.qty} screens</dd></div>}
           </dl>
-          <FitNote c={c} />
+          {c.projectors > 1 && (
+            <p className="muted small">Estimate: the fewest projectors that leave at least {MIN_OVERLAP * 100}% overlap at each blend.</p>
+          )}
         </>
       )}
 
@@ -140,20 +156,5 @@ function ScreenCard({
         <input value={s.notes} maxLength={2000} onChange={(e) => onChange({ notes: e.target.value })} placeholder="Front / rear, surface, position, rigging…" />
       </label>
     </div>
-  );
-}
-
-function FitNote({ c }: { c: Extract<ReturnType<typeof calcScreen>, { ok: true }> }) {
-  if (c.apparentW === c.projW) return <p className="muted small">Fills one projector exactly.</p>;
-  if (c.apparentW < c.projW) {
-    return <p className="muted small">One projector: uses {fmt(c.apparentW)} of its {fmt(c.projW)} px width (sides unused).</p>;
-  }
-  const f = fitToWidth(c);
-  return (
-    <p className="small fit-warn">
-      Wider than one projector ({fmt(c.projW)} px). Filling the height needs about {c.across} projectors blended
-      side by side (before overlap). One projector fitted to the width gives {fmt(f.w)} × {fmt(f.h)} with the top and
-      bottom unused.
-    </p>
   );
 }

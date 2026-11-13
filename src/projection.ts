@@ -78,8 +78,12 @@ export type ScreenCalc =
       apparentW: number;
       pxPerFt: number;
       aspect: number;
-      /** Projectors side by side needed to fill the height (before blend overlap). */
-      across: number;
+      /** Projectors side by side to fill the screen. */
+      projectors: number;
+      /** Overlap at each blend, in projector pixels (0 for one projector). */
+      overlapPx: number;
+      /** The same overlap on the screen, in mm. */
+      overlapMm: number;
     }
   | { ok: false; error: string };
 
@@ -101,13 +105,24 @@ export function calcScreen(s: ProjScreen): ScreenCalc {
     apparentW,
     pxPerFt,
     aspect: w / h,
-    across: Math.max(1, Math.ceil(apparentW / p.w - 1e-9)),
+    ...blend(apparentW, p.w, pxPerFt),
   };
 }
 
-/** One projector, fitted to the width, when the screen is wider than the projector's image. */
-export function fitToWidth(c: Extract<ScreenCalc, { ok: true }>) {
-  return { w: c.projW, h: Math.round(c.projW / c.aspect) };
+/** Smallest overlap at each blend, as a share of one projector's width. */
+export const MIN_OVERLAP = 0.15;
+
+/**
+ * How many projectors fill the screen's width, and the overlap at each blend.
+ * N projectors with overlap O cover N × P − (N − 1) × O pixels, so O = (N × P − W) ÷ (N − 1).
+ * Uses the fewest projectors that leave at least MIN_OVERLAP of a projector at each blend.
+ */
+function blend(apparentW: number, projW: number, pxPerFt: number) {
+  if (apparentW <= projW) return { projectors: 1, overlapPx: 0, overlapMm: 0 };
+  let n = 2;
+  while ((n * projW - apparentW) / (n - 1) < MIN_OVERLAP * projW) n++;
+  const overlapPx = Math.round((n * projW - apparentW) / (n - 1));
+  return { projectors: n, overlapPx, overlapMm: (overlapPx / pxPerFt) * 304.8 };
 }
 
 export const sizeText = (c: Extract<ScreenCalc, { ok: true }>) =>

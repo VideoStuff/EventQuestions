@@ -1,7 +1,7 @@
 import { aspect, calcWall, fmt, ftIn, meters, totals, PANEL_OPTIONS } from "../led";
 import { APP_VERSION } from "../version";
 import { questionsFor, type Bank, type Show } from "../types";
-import { calcScreen, fitToWidth, sizeMeters, sizeText } from "../projection";
+import { calcScreen, sizeMeters, sizeText } from "../projection";
 
 export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
   const questions = questionsFor(show, bank);
@@ -64,7 +64,7 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
             {hasScreens && (
               <table className="walls">
                 <thead>
-                  <tr><th>Screen</th><th>Qty</th><th>Size (H × W)</th><th>Projector</th><th>Apparent resolution</th></tr>
+                  <tr><th>Screen</th><th>Qty</th><th>Size (H × W)</th><th>Projector</th><th>Apparent resolution</th><th>Projectors</th><th>Overlap</th></tr>
                 </thead>
                 <tbody>
                   {show.screens.map((s) => {
@@ -76,14 +76,12 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
                         <td>{sizeText(r)}<div className="muted small">{sizeMeters(r)} · {r.aspect.toFixed(2)}:1</div></td>
                         <td>{r.projW} × {r.projH}</td>
                         <td>
-                          {fmt(r.apparentW)} × {fmt(r.projH)}
-                          {r.apparentW > r.projW && (
-                            <div className="muted small">≈{r.across} projectors blended, or 1 fitted to width at {fitToWidth(r).w} × {fitToWidth(r).h}</div>
-                          )}
-                        </td>
+{fmt(r.apparentW)} × {fmt(r.projH)}</td>
+                        <td>{r.projectors}{r.qty > 1 && <div className="muted small">{r.projectors * r.qty} total</div>}</td>
+                        <td>{r.projectors > 1 ? <>{fmt(r.overlapPx)} px<div className="muted small">{ftIn(r.overlapMm)}</div></> : "—"}</td>
                       </tr>
                     ) : (
-                      <tr key={s.id}><td>{s.name}</td><td colSpan={4} className="muted">{r.error}</td></tr>
+                      <tr key={s.id}><td>{s.name}</td><td colSpan={6} className="muted">{r.error}</td></tr>
                     );
                   })}
                 </tbody>

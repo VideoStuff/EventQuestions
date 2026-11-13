@@ -26,7 +26,7 @@ The sidebar on each show says whether the latest changes have been downloaded, a
   - **ROE Graphite 2.6**: 500 × 1000 mm, 192 × 384 px, 320 W, plus 500 × 500 half panels (160 W).
   - **Custom panel**: enter the pixel pitch and panel size in mm (and optionally watts per panel).
   - Specs and rounding match [led-wall-calc](https://github.com/VideoStuff/led-wall-calc) and PixelPlanner, including the 9 ft → 6 panels high rule.
-- **Projection screen planner:** as many screens as the show needs. Pick a common size (16:9, 16:10 or wide blend screens) or type the exact height and width in feet, then choose the projector resolution (1920 × 1080, 1920 × 1200 or 3840 × 2160). With the projector filling the screen's height, it shows the screen's **apparent width in pixels** (width × projector pixels high ÷ height), pixels per foot and aspect ratio. If the screen is wider than one projector, it says roughly how many projectors a blend needs (before overlap) and what one projector fitted to the width gives.
+- **Projection screen planner:** as many screens as the show needs. Pick a common size (16:9, 16:10 or wide blend screens) or type the exact height and width in feet, then choose the projector resolution (1920 × 1080, 1920 × 1200 or 3840 × 2160). With the projector filling the screen's height, it shows the screen's **apparent width in pixels** (width × projector pixels high ÷ height), pixels per foot and aspect ratio. It also gives the **number of projectors** across and, for blends, the estimated **overlap** at each blend in pixels and feet: the fewest projectors that leave at least 15% of a projector's width at each blend, with overlap = (projectors × projector width − apparent width) ÷ (projectors − 1).
 - **Print / PDF** view of the whole sheet with an LED wall table.
 - **Duplicate** a show (under **More** at the bottom of a sheet) to start a similar one.
 
@@ -42,6 +42,7 @@ The version number shows next to **Show Sheets** at the top of every page, on pr
 
 | Version | Changes |
 |---|---|
+| v1.4 | Projection screens show the number of projectors and the estimated blend overlap (pixels and feet) instead of a warning. |
 | v1.3 | Version number shown at the top of the app and on printouts. |
 | v1.2 | Projection screen planner: multiple screens, common sizes or exact size in feet, projector resolution, apparent width in pixels. |
 | v1.1 | FOH and Video Village split into separate categories. |
