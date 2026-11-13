@@ -1,5 +1,6 @@
 import { aspect, calcWall, fmt, ftIn, meters, totals, PANEL_OPTIONS } from "../led";
 import { questionsFor, type Bank, type Show } from "../types";
+import { calcScreen, fitToWidth, sizeMeters, sizeText } from "../projection";
 
 export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
   const questions = questionsFor(show, bank);
@@ -20,7 +21,8 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
       {bank.categories.map((c) => {
         const qs = questions.filter((q) => q.categoryId === c.id);
         const hasWalls = c.special === "led" && show.walls.length > 0;
-        if (!qs.length && !hasWalls) return null;
+        const hasScreens = c.special === "projection" && show.screens.length > 0;
+        if (!qs.length && !hasWalls && !hasScreens) return null;
         return (
           <section key={c.id} className="print-cat">
             <h2>{c.name}</h2>
@@ -56,6 +58,34 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
                     <tr><td colSpan={7}><strong>Total:</strong> {t.walls} walls · {t.byPanel.map((p) => `${fmt(p.count)} × ${p.name}`).join(" · ")} · {fmt(t.watts)} W</td></tr>
                   </tfoot>
                 )}
+              </table>
+            )}
+            {hasScreens && (
+              <table className="walls">
+                <thead>
+                  <tr><th>Screen</th><th>Qty</th><th>Size (H × W)</th><th>Projector</th><th>Apparent resolution</th></tr>
+                </thead>
+                <tbody>
+                  {show.screens.map((s) => {
+                    const r = calcScreen(s);
+                    return r.ok ? (
+                      <tr key={s.id}>
+                        <td>{s.name}{s.notes && <div className="muted small">{s.notes}</div>}</td>
+                        <td>{r.qty}</td>
+                        <td>{sizeText(r)}<div className="muted small">{sizeMeters(r)} · {r.aspect.toFixed(2)}:1</div></td>
+                        <td>{r.projW} × {r.projH}</td>
+                        <td>
+                          {fmt(r.apparentW)} × {fmt(r.projH)}
+                          {r.apparentW > r.projW && (
+                            <div className="muted small">≈{r.across} projectors blended, or 1 fitted to width at {fitToWidth(r).w} × {fitToWidth(r).h}</div>
+                          )}
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={s.id}><td>{s.name}</td><td colSpan={4} className="muted">{r.error}</td></tr>
+                    );
+                  })}
+                </tbody>
               </table>
             )}
             <dl>

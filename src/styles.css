@@ -201,3 +201,6 @@ table.walls th, table.walls td { border: 1px solid var(--border); padding: 4px 6
 .badge.warn { color: var(--warn); border-color: var(--warn); margin-left: 6px; }
 .notice { border-left: 4px solid var(--ok); }
 .topbar a:hover { color: var(--accent); }
+.span2 { grid-column: span 2; }
+.screen-inputs label { font-size: 0.875rem; }
+.fit-warn { color: var(--text); border-left: 3px solid var(--warn); padding-left: 8px; }

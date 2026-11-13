@@ -1,5 +1,5 @@
 // Saving shows to .json files and opening them again.
-import { cleanAnswers, cleanCategory, cleanMeta, cleanQuestion, sanitizeWalls, type Data } from "./store";
+import { cleanAnswers, cleanCategory, cleanMeta, cleanQuestion, sanitizeScreens, sanitizeWalls, type Data } from "./store";
 import { migrateBank } from "./seed";
 import { newId, questionsFor, type Bank, type Category, type Question, type Show } from "./types";
 
@@ -61,8 +61,8 @@ function toShowFile(show: Show, bank: Bank): ShowFile {
     type: "show",
     version: VERSION,
     exportedAt: new Date().toISOString(),
-    show: { id: show.id, meta: show.meta, answers: show.answers, walls: show.walls, createdAt: show.createdAt, updatedAt: show.updatedAt },
-    categories: bank.categories.filter((c) => catIds.has(c.id) || c.special === "led"),
+    show: { id: show.id, meta: show.meta, answers: show.answers, walls: show.walls, screens: show.screens, createdAt: show.createdAt, updatedAt: show.updatedAt },
+    categories: bank.categories.filter((c) => catIds.has(c.id) || !!c.special),
     questions: qs.map((q) => (extraIds.has(q.id) ? { ...q, showOnly: true } : q)),
   };
 }
@@ -170,6 +170,7 @@ export function applyShowFile(data: Data, file: ShowFile, asCopy: boolean): { da
     meta: cleanMeta(src.meta),
     answers: cleanAnswers(src.answers),
     walls: sanitizeWalls(src.walls),
+    screens: sanitizeScreens(src.screens),
     extra,
     createdAt: typeof src.createdAt === "string" ? src.createdAt : t,
     updatedAt: typeof src.updatedAt === "string" ? src.updatedAt : t,

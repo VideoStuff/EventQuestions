@@ -3,12 +3,13 @@ import { addQuestion, deleteShow, duplicateShow, markDownloaded, patchShow, remo
 import { downloadShow } from "../files";
 import { hasAnswer, questionsFor, type Answer, type Bank, type Question, type Show } from "../types";
 import LedWalls from "./LedWalls";
+import ProjectionScreens from "./ProjectionScreens";
 import { go } from "../router";
 
 export const needsDownload = (s: Show) => !s.downloadedAt || s.updatedAt > s.downloadedAt;
 
 export default function ShowEditor({ show, bank, update }: { show: Show; bank: Bank; update: Update }) {
-  const { meta, answers, walls } = show;
+  const { meta, answers, walls, screens } = show;
   const questions = questionsFor(show, bank);
   const setMeta = (patch: Partial<Show["meta"]>) => patchShow(update, show.id, { meta: { ...meta, ...patch } });
   const setAnswer = (qid: string, patch: Partial<Answer>) =>
@@ -36,13 +37,14 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
         <nav>
           {bank.categories.map((c) => {
             const qs = byCat(c.id);
-            if (!qs.length && c.special !== "led") return null;
+            if (!qs.length && !c.special) return null;
             const n = qs.filter((q) => hasAnswer(q, answers[q.id])).length;
             return (
               <a key={c.id} href={`#cat-${c.id}`} onClick={(e) => { e.preventDefault(); document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth" }); }}>
                 <span>{c.name}</span>
                 <span className={`count ${qs.length && n === qs.length ? "full" : ""}`}>
                   {c.special === "led" && walls.length ? `${walls.length} wall${walls.length > 1 ? "s" : ""} · ` : ""}
+                  {c.special === "projection" && screens.length ? `${screens.length} screen${screens.length > 1 ? "s" : ""} · ` : ""}
                   {n}/{qs.length}
                 </span>
               </a>
@@ -66,7 +68,7 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
 
         {bank.categories.map((c) => {
           const qs = byCat(c.id);
-          if (!qs.length && c.special !== "led") return null;
+          if (!qs.length && !c.special) return null;
           const text = qs.filter((q) => q.kind === "text");
           const checks = qs.filter((q) => q.kind === "check");
           return (
@@ -74,6 +76,9 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
               <h2>{c.name}</h2>
 
               {c.special === "led" && <LedWalls walls={walls} onChange={(w) => patchShow(update, show.id, { walls: w })} />}
+              {c.special === "projection" && (
+                <ProjectionScreens screens={screens} onChange={(s) => patchShow(update, show.id, { screens: s })} />
+              )}
 
               {text.map((q) => (
                 <div className="qa" key={q.id}>

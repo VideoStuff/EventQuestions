@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { migrateBank, seedBank } from "./seed";
 import { newWall, sanitizeWalls } from "./led";
+import { newScreen, sanitizeScreens } from "./projection";
 import { newId, type Answer, type Bank, type Category, type Question, type Show, type ShowMeta } from "./types";
 
 const KEY = "show-sheets:v1";
@@ -18,7 +19,7 @@ function load(): { data: Data; storage: StorageState } {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const d = JSON.parse(raw) as Data;
-      if (d?.bank?.categories && Array.isArray(d.shows)) return { data: { ...d, bank: migrateBank(d.bank) }, storage: "ok" };
+      if (d?.bank?.categories && Array.isArray(d.shows)) return { data: { bank: migrateBank(d.bank), shows: d.shows.map((s) => ({ ...s, screens: s.screens ?? [] })) }, storage: "ok" };
     }
     localStorage.setItem("show-sheets:probe", "1");
     localStorage.removeItem("show-sheets:probe");
@@ -67,11 +68,11 @@ const now = () => new Date().toISOString();
 export function createShow(update: Update, meta: ShowMeta): string {
   const id = newId("show");
   const t = now();
-  update((d) => ({ ...d, shows: [{ id, meta, answers: {}, walls: [], extra: [], createdAt: t, updatedAt: t }, ...d.shows] }));
+  update((d) => ({ ...d, shows: [{ id, meta, answers: {}, walls: [], screens: [], extra: [], createdAt: t, updatedAt: t }, ...d.shows] }));
   return id;
 }
 
-export function patchShow(update: Update, id: string, patch: Partial<Pick<Show, "meta" | "answers" | "walls" | "extra">>) {
+export function patchShow(update: Update, id: string, patch: Partial<Pick<Show, "meta" | "answers" | "walls" | "screens" | "extra">>) {
   update((d) => ({
     ...d,
     shows: d.shows.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: now() } : s)),
@@ -94,6 +95,7 @@ export function duplicateShow(update: Update, show: Show): string {
         id,
         meta: { ...show.meta, name: `${show.meta.name} (copy)` },
         walls: show.walls.map((w) => ({ ...w, id: newWall(0).id })),
+        screens: show.screens.map((s) => ({ ...s, id: newScreen(0).id })),
         createdAt: t,
         updatedAt: t,
         downloadedAt: undefined,
@@ -217,7 +219,7 @@ export function cleanCategory(raw: unknown): Category | null {
   const r = (raw ?? {}) as Record<string, unknown>;
   const id = str(r.id, 60), name = str(r.name, 100);
   if (!id || !name) return null;
-  return { id, name, ...(r.special === "led" ? { special: "led" } : {}) };
+  return { id, name, ...(r.special === "led" || r.special === "projection" ? { special: r.special } : {}) };
 }
 
-export { sanitizeWalls };
+export { sanitizeWalls, sanitizeScreens };

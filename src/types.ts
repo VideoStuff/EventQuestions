@@ -1,11 +1,12 @@
 import type { LedWall } from "./led";
+import type { ProjScreen } from "./projection";
 
 export type QuestionKind = "text" | "check";
 
 export interface Category {
   id: string;
   name: string;
-  /** "led" shows the LED wall planner in this category. */
+  /** "led" shows the LED wall planner, "projection" the projection screen planner. */
   special?: string;
 }
 
@@ -37,6 +38,8 @@ export interface Show {
   meta: ShowMeta;
   answers: Record<string, Answer>;
   walls: LedWall[];
+  /** Projection screens (older saved shows may not have this). */
+  screens: ProjScreen[];
   /** Questions that belong to this show only. */
   extra: Question[];
   createdAt: string;

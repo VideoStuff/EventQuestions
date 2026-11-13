@@ -41,6 +41,7 @@ export const SEED: { id?: string; name: string; special?: string; items: Item[] 
   },
   {
     name: "Projection & Screens",
+    special: "projection",
     items: [
       ["q", "Screen and Projection"],
       ["c", "Projection Dark Time"],
@@ -182,7 +183,18 @@ export function seedBank(): Bank {
  * the older version made them, so your own renames and moves are left alone.
  */
 export function migrateBank(bank: Bank): Bank {
-  // v1: "FOH & Video Village" was split into "FOH" and "Video Village".
+  return splitFohVideoVillage(addProjectionPlanner(bank));
+}
+
+// The projection screen planner lives in "Projection & Screens".
+function addProjectionPlanner(bank: Bank): Bank {
+  if (bank.categories.some((c) => c.special === "projection")) return bank;
+  if (!bank.categories.some((c) => c.id === "c-projection-screens" && !c.special)) return bank;
+  return { ...bank, categories: bank.categories.map((c) => (c.id === "c-projection-screens" ? { ...c, special: "projection" } : c)) };
+}
+
+// "FOH & Video Village" was split into "FOH" and "Video Village".
+function splitFohVideoVillage(bank: Bank): Bank {
   const foh = bank.categories.find((c) => c.id === "c-foh-video-village");
   if (!foh || foh.name !== "FOH & Video Village" || bank.categories.some((c) => c.id === "c-video-village")) return bank;
   const vvIds = ["q-video-village-location", "q-table-positioning", "q-power-for-video-village", "q-audio-monitors"];
