@@ -197,3 +197,7 @@ table.walls th, table.walls td { border: 1px solid var(--border); padding: 4px 6
   table.walls { display: table; }
   body { font-size: 11pt; }
 }
+.crumb { margin-left: auto; }
+.badge.warn { color: var(--warn); border-color: var(--warn); margin-left: 6px; }
+.notice { border-left: 4px solid var(--ok); }
+.topbar a:hover { color: var(--accent); }

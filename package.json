@@ -1,27 +1,25 @@
 {
   "name": "eventquestions",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Show info sheets: PM call notes, checklist and LED wall planning for each show.",
+  "description": "Show info sheets: PM call notes, checklist and LED wall planning for each show. Runs entirely in the browser.",
+  "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
-  "engines": {
-    "node": ">=22.13"
-  },
   "dependencies": {
-    "next": "15.5.4",
     "react": "19.1.1",
-    "react-dom": "19.1.1",
-    "server-only": "^0.0.1"
+    "react-dom": "19.1.1"
   },
   "devDependencies": {
-    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "5.9.2"
+    "@vitejs/plugin-react": "5.0.2",
+    "typescript": "5.9.2",
+    "vite": "7.1.5",
+    "vite-plugin-singlefile": "2.3.0"
   }
 }

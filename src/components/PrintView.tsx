@@ -1,44 +1,36 @@
-import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
-import { aspect, calcWall, fmt, ftIn, meters, totals, PANEL_OPTIONS } from "@/lib/led";
-import { loadShow } from "@/lib/show";
-import PrintButton from "@/components/PrintButton";
+import { aspect, calcWall, fmt, ftIn, meters, totals, PANEL_OPTIONS } from "../led";
+import { questionsFor, type Bank, type Show } from "../types";
 
-export const dynamic = "force-dynamic";
-
-export default async function PrintShow({ params }: { params: Promise<{ id: string }> }) {
-  await requireUser();
-  const data = loadShow(Number((await params).id));
-  if (!data) notFound();
-  const { show, categories, questions } = data;
-  const t = totals(show.led_walls);
+export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
+  const questions = questionsFor(show, bank);
+  const t = totals(show.walls);
+  const m = show.meta;
 
   return (
     <div className="print">
       <div className="row no-print" style={{ marginBottom: 16 }}>
-        <PrintButton />
-        <a href={`/shows/${show.id}`}>Back to the sheet</a>
+        <button type="button" onClick={() => window.print()}>Print / Save as PDF</button>
+        <a href={`#/show/${show.id}`}>Back to the sheet</a>
       </div>
-      <h1>{show.op_number && `${show.op_number} · `}{show.name || "Untitled show"}</h1>
+      <h1>{m.op_number && `${m.op_number} · `}{m.name || "Untitled show"}</h1>
       <p className="muted">
-        {[show.client, show.start_date && (show.end_date && show.end_date !== show.start_date ? `${show.start_date} – ${show.end_date}` : show.start_date)]
-          .filter(Boolean)
-          .join(" · ")}
+        {[m.client, m.start_date && (m.end_date && m.end_date !== m.start_date ? `${m.start_date} – ${m.end_date}` : m.start_date)].filter(Boolean).join(" · ")}
       </p>
 
-      {categories.map((c) => {
-        const qs = questions.filter((q) => q.category_id === c.id);
-        if (!qs.length && !(c.special === "led" && show.led_walls.length)) return null;
+      {bank.categories.map((c) => {
+        const qs = questions.filter((q) => q.categoryId === c.id);
+        const hasWalls = c.special === "led" && show.walls.length > 0;
+        if (!qs.length && !hasWalls) return null;
         return (
           <section key={c.id} className="print-cat">
             <h2>{c.name}</h2>
-            {c.special === "led" && show.led_walls.length > 0 && (
+            {hasWalls && (
               <table className="walls">
                 <thead>
                   <tr><th>Wall</th><th>Qty</th><th>Panel</th><th>Panels</th><th>Size</th><th>Resolution</th><th>Max W</th></tr>
                 </thead>
                 <tbody>
-                  {show.led_walls.map((w) => {
+                  {show.walls.map((w) => {
                     const r = calcWall(w);
                     const panel = PANEL_OPTIONS.find((o) => o.value === w.panel)?.label;
                     return r.ok ? (

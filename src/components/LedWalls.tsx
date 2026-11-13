@@ -1,5 +1,3 @@
-"use client";
-
 import {
   PANEL_OPTIONS,
   aspect,
@@ -12,7 +10,7 @@ import {
   newWall,
   totals,
   type LedWall,
-} from "@/lib/led";
+} from "../led";
 
 export default function LedWalls({ walls, onChange }: { walls: LedWall[]; onChange: (w: LedWall[]) => void }) {
   const update = (i: number, patch: Partial<LedWall>) => onChange(walls.map((w, j) => (j === i ? { ...w, ...patch } : w)));

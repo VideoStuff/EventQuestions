@@ -1,7 +1,10 @@
+import type { Bank } from "./types";
+
 
 // Starting questionnaire, built from "PM Questions and Checklist.xlsx".
 // "q" = a question with a written answer, "c" = a checklist item (checkbox + note).
 type Item = ["q" | "c", string];
+
 
 export const SEED: { name: string; special?: string; items: Item[] }[] = [
   {
@@ -147,3 +150,22 @@ export const SEED: { name: string; special?: string; items: Item[] }[] = [
     ],
   },
 ];
+
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/**
+ * The starting question list. IDs come from the text so files made in any browser
+ * line up with each other.
+ */
+export function seedBank(): Bank {
+  const bank: Bank = { categories: [], questions: [] };
+  for (const c of SEED) {
+    const cid = `c-${slug(c.name)}`;
+    bank.categories.push({ id: cid, name: c.name, ...(c.special ? { special: c.special } : {}) });
+    for (const [k, text] of c.items) {
+      bank.questions.push({ id: `q-${slug(text)}`, categoryId: cid, text, kind: k === "c" ? "check" : "text" });
+    }
+  }
+  return bank;
+}
