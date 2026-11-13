@@ -1,6 +1,6 @@
 import { aspect, calcWall, fmt, ftIn, meters, totals, PANEL_OPTIONS } from "../led";
 import { APP_VERSION } from "../version";
-import { GROUPS, groupOf, questionsFor, type Bank, type Show } from "../types";
+import { GROUPS, groupOf, isNotUsed, questionsFor, type Bank, type Show } from "../types";
 import { brightness, calcScreen, sizeMeters, sizeText } from "../projection";
 
 export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
@@ -26,6 +26,14 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
         const qs = questions.filter((q) => q.categoryId === c.id);
         const hasWalls = c.special === "led" && show.walls.length > 0;
         const hasScreens = c.special === "projection" && show.screens.length > 0;
+        if (!qs.length && !c.special) return null;
+        if (isNotUsed(show, c.id)) {
+          return (
+            <section key={c.id} className="print-cat print-not-used">
+              <h3>{c.name} <span className="muted">· Not used for this show</span></h3>
+            </section>
+          );
+        }
         if (!qs.length && !hasWalls && !hasScreens) return null;
         return (
           <section key={c.id} className="print-cat">

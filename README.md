@@ -33,6 +33,7 @@ The sidebar on each show says whether the latest changes have been downloaded, a
   - Specs and rounding match [led-wall-calc](https://github.com/VideoStuff/led-wall-calc) and PixelPlanner, including the 9 ft → 6 panels high rule.
 - **Projection screen planner:** as many screens as the show needs. Pick a common size (16:9, 16:10 or wide blend screens) or type the exact height and width in feet, then choose the projector resolution (1920 × 1080, 1920 × 1200 or 3840 × 2160). With the projector filling the screen's height, it shows the screen's **apparent width in pixels** (width × projector pixels high ÷ height), pixels per foot and aspect ratio. It also gives the **number of projectors** across and, for blends, the estimated **overlap** at each blend in pixels and feet: the fewest projectors that leave at least 15% of a projector's width at each blend, with overlap = (projectors × projector width − apparent width) ÷ (projectors − 1).
   - **+ Add projector** on a screen picks a projector (the Panasonic and Barco models from AV Calcs with their rated lumens, or custom lumens), screen gain and single or double stacking. It shows brightness in **footlamberts** (lumens × gain ÷ image area in sq ft, as in AV Calcs; for blends, the area one projector lights) and nits for one projector (double stacked also shows the pair's combined brightness), rated good at 50+ fL, fair at 30–50 and low under 30, plus the lumens per projector needed for 50 fL.
+- **Not used sections:** tick **Not used** on a category's header when a show doesn't need it (e.g. no records). The header and sidebar show it as not used, it's left out of the progress counts, and the printout lists it as not used. Anything already written is kept and comes back if you untick it.
 - **Print / PDF** view of the whole sheet with an LED wall table.
 - **Duplicate** a show (under **More** at the bottom of a sheet) to start a similar one.
 
@@ -48,6 +49,7 @@ The version number shows next to **Show Sheets** at the top of every page, on pr
 
 | Version | Changes |
 |---|---|
+| v1.9 | Mark a section as **Not used** for a show (checkbox on its header): shown on the collapsed header and in the sidebar, left out of progress, printed as not used; answers are kept. |
 | v1.8 | New Cameras category in Video System (the Cameras question moved there from Sources & Playback, plus camera checklist items). |
 | v1.7 | Categories grouped under General Info, Video System and Room Setup on the sheet, sidebar, printout and Questions page; a category's group can be changed. |
 | v1.6 | Cleaner layout: categories are collapsible panels (open ones are remembered; Expand all / Collapse all), and LED walls and projection screens collapse to a one-line summary. Double-stacked projectors show one projector's brightness, with the stacked pair's combined brightness underneath. |

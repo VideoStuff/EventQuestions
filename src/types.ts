@@ -55,6 +55,8 @@ export interface Show {
   screens: ProjScreen[];
   /** Questions that belong to this show only. */
   extra: Question[];
+  /** Category IDs marked "not used" for this show (older shows don't have this). */
+  notUsed?: string[];
   createdAt: string;
   updatedAt: string;
   /** When this show was last downloaded as a file. */
@@ -79,3 +81,9 @@ export function questionsFor(show: Show, bank: Bank): Question[] {
   const shared = bank.questions.filter((q) => !q.archived || hasAnswer(q, show.answers[q.id]));
   return [...shared, ...show.extra];
 }
+
+export const isNotUsed = (show: Show, categoryId: string) => !!show.notUsed?.includes(categoryId);
+
+/** Questions that count toward progress: everything except categories marked not used. */
+export const activeQuestions = (show: Show, bank: Bank) =>
+  questionsFor(show, bank).filter((q) => !isNotUsed(show, q.categoryId));

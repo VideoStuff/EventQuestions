@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { addQuestion, deleteShow, duplicateShow, markDownloaded, patchShow, removeShowQuestion, type Update } from "../store";
 import { downloadShow } from "../files";
-import { GROUPS, groupOf, hasAnswer, questionsFor, type Answer, type Category, type Bank, type Question, type Show } from "../types";
+import { GROUPS, activeQuestions, groupOf, hasAnswer, isNotUsed, questionsFor, type Answer, type Category, type Bank, type Question, type Show } from "../types";
 import LedWalls from "./LedWalls";
 import ProjectionScreens from "./ProjectionScreens";
 import { go } from "../router";
@@ -17,7 +17,13 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
     patchShow(update, show.id, { answers: { ...answers, [qid]: { ...answers[qid], ...patch } } });
 
   const byCat = (cid: string) => questions.filter((q) => q.categoryId === cid);
-  const done = questions.filter((q) => hasAnswer(q, answers[q.id])).length;
+  const active = activeQuestions(show, bank);
+  const done = active.filter((q) => hasAnswer(q, answers[q.id])).length;
+  const setNotUsed = (cid: string, notUsed: boolean) => {
+    const list = (show.notUsed ?? []).filter((x) => x !== cid);
+    patchShow(update, show.id, { notUsed: notUsed ? [...list, cid] : list });
+    if (notUsed) toggle(cid, false);
+  };
   const unsaved = needsDownload(show);
 
   const sections = bank.categories.filter((c) => byCat(c.id).length || c.special);
@@ -27,7 +33,7 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
     requestAnimationFrame(() => document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
   const progress = (cats: Category[]) => {
-    const qs = cats.flatMap((c) => byCat(c.id));
+    const qs = cats.filter((c) => !isNotUsed(show, c.id)).flatMap((c) => byCat(c.id));
     return { n: qs.filter((q) => hasAnswer(q, answers[q.id])).length, total: qs.length };
   };
   const groups = GROUPS.map((g) => ({ ...g, cats: sections.filter((c) => groupOf(c) === g.id) })).filter((g) => g.cats.length);
@@ -55,7 +61,7 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
             ? show.downloadedAt ? "Changed since your last download" : "Not downloaded yet"
             : "File is up to date"}
         </div>
-        <div className="muted small">{done} of {questions.length} filled</div>
+        <div className="muted small">{done} of {active.length} filled{show.notUsed?.length ? ` · ${show.notUsed.length} not used` : ""}</div>
         <div className="row toc-tools">
           <button type="button" className="link small" onClick={() => setAll(sections.map((c) => c.id))}>Expand all</button>
           <button type="button" className="link small" onClick={() => setAll([])}>Collapse all</button>
@@ -67,11 +73,12 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
             const qs = byCat(c.id);
             const n = qs.filter((q) => hasAnswer(q, answers[q.id])).length;
             const extra = plannerSummary(c.special);
+            const off = isNotUsed(show, c.id);
             return (
-              <a key={c.id} href={`#cat-${c.id}`} className={open.has(c.id) ? "is-open" : ""} onClick={(e) => { e.preventDefault(); jump(c.id); }}>
+              <a key={c.id} href={`#cat-${c.id}`} className={`${open.has(c.id) ? "is-open" : ""} ${off ? "not-used" : ""}`} onClick={(e) => { e.preventDefault(); jump(c.id); }}>
                 <span>{c.name}</span>
-                <span className={`count ${qs.length && n === qs.length ? "full" : ""}`}>
-                  {extra && `${extra} · `}{n}/{qs.length}
+                <span className={`count ${!off && qs.length && n === qs.length ? "full" : ""}`}>
+                  {off ? "not used" : <>{extra && `${extra} · `}{n}/{qs.length}</>}
                 </span>
               </a>
             );
@@ -112,17 +119,30 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
           const n = qs.filter((q) => hasAnswer(q, answers[q.id])).length;
           const isOpen = open.has(c.id);
           const extra = plannerSummary(c.special);
+          const off = isNotUsed(show, c.id);
           return (
-            <section key={c.id} id={`cat-${c.id}`} className={`category ${isOpen ? "open" : ""}`}>
-              <h3>
+            <section key={c.id} id={`cat-${c.id}`} className={`category ${isOpen ? "open" : ""} ${off ? "not-used" : ""}`}>
+              <h3 className="cat-bar">
                 <button type="button" className="cat-head" aria-expanded={isOpen} aria-controls={`body-${c.id}`} onClick={() => toggle(c.id)}>
                   <span className="chev" aria-hidden="true">›</span>
                   <span className="cat-title">{c.name}</span>
-                  {extra && <span className="pill">{extra}</span>}
-                  <span className={`count ${qs.length && n === qs.length ? "full" : ""}`}>{n}/{qs.length}</span>
+                  {extra && !off && <span className="pill">{extra}</span>}
+                  {!off && <span className={`count ${qs.length && n === qs.length ? "full" : ""}`}>{n}/{qs.length}</span>}
                 </button>
+                <label className="not-used-toggle no-print" title="Mark this section as not used for this show">
+                  <input type="checkbox" checked={off} onChange={(e) => setNotUsed(c.id, e.target.checked)} />
+                  <span>Not used</span>
+                </label>
               </h3>
               {isOpen && <div className="cat-body" id={`body-${c.id}`}>
+              {off && (
+                <div className="not-used-note">
+                  Marked <strong>not used</strong> for this show. It doesn&apos;t count toward progress and prints as not used.
+                  Anything below is kept.
+                  <button type="button" className="link small" onClick={() => setNotUsed(c.id, false)}>Mark as used</button>
+                </div>
+              )}
+              <div className={off ? "dimmed" : ""} style={{ display: "contents" }}>
 
               {c.special === "led" && <LedWalls walls={walls} onChange={(w) => patchShow(update, show.id, { walls: w })} />}
               {c.special === "projection" && (
@@ -166,6 +186,7 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
                   addQuestion(update, { categoryId: c.id, text, kind }, everyShow ? undefined : show.id);
                 }}
               />
+              </div>
               </div>}
             </section>
           );

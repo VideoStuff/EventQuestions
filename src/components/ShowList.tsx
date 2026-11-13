@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { createShow, type Data, type Update } from "../store";
 import { applyShowFile, downloadBackup, mergeBank, readFile } from "../files";
-import { hasAnswer, questionsFor } from "../types";
+import { activeQuestions, hasAnswer } from "../types";
 import { go } from "../router";
 import { needsDownload } from "./ShowEditor";
 
@@ -108,7 +108,7 @@ export default function ShowList({ data, update }: { data: Data; update: Update 
       {[...data.shows]
         .sort((a, b) => (b.meta.start_date || "0").localeCompare(a.meta.start_date || "0") || b.updatedAt.localeCompare(a.updatedAt))
         .map((s) => {
-          const qs = questionsFor(s, data.bank);
+          const qs = activeQuestions(s, data.bank);
           const done = qs.filter((q) => hasAnswer(q, s.answers[q.id])).length;
           return (
             <a href={`#/show/${s.id}`} className="card show-row" key={s.id}>

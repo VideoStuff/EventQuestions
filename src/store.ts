@@ -72,7 +72,7 @@ export function createShow(update: Update, meta: ShowMeta): string {
   return id;
 }
 
-export function patchShow(update: Update, id: string, patch: Partial<Pick<Show, "meta" | "answers" | "walls" | "screens" | "extra">>) {
+export function patchShow(update: Update, id: string, patch: Partial<Pick<Show, "meta" | "answers" | "walls" | "screens" | "extra" | "notUsed">>) {
   update((d) => ({
     ...d,
     shows: d.shows.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: now() } : s)),

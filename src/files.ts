@@ -67,7 +67,7 @@ function toShowFile(show: Show, bank: Bank): ShowFile {
     version: VERSION,
     appVersion: APP_VERSION,
     exportedAt: new Date().toISOString(),
-    show: { id: show.id, meta: show.meta, answers: show.answers, walls: show.walls, screens: show.screens, createdAt: show.createdAt, updatedAt: show.updatedAt },
+    show: { id: show.id, meta: show.meta, answers: show.answers, walls: show.walls, screens: show.screens, notUsed: show.notUsed ?? [], createdAt: show.createdAt, updatedAt: show.updatedAt },
     categories: bank.categories.filter((c) => catIds.has(c.id) || !!c.special),
     questions: qs.map((q) => (extraIds.has(q.id) ? { ...q, showOnly: true } : q)),
   };
@@ -179,6 +179,9 @@ export function applyShowFile(data: Data, file: ShowFile, asCopy: boolean): { da
     answers: cleanAnswers(src.answers),
     walls: sanitizeWalls(src.walls),
     screens: sanitizeScreens(src.screens),
+    notUsed: Array.isArray(src.notUsed)
+      ? [...new Set(src.notUsed.filter((x): x is string => typeof x === "string").slice(0, 200).map((x) => catMap.get(x) ?? x.slice(0, 60)))]
+      : [],
     extra,
     createdAt: typeof src.createdAt === "string" ? src.createdAt : t,
     updatedAt: typeof src.updatedAt === "string" ? src.updatedAt : t,
