@@ -205,3 +205,13 @@ table.walls th, table.walls td { border: 1px solid var(--border); padding: 4px 6
 .screen-inputs label { font-size: 0.875rem; }
 .fit-warn { color: var(--text); border-left: 3px solid var(--warn); padding-left: 8px; }
 .version { font-weight: 500; font-size: 0.75rem; color: var(--muted); margin-left: 4px; }
+.add-pj { justify-self: start; }
+.pj { display: grid; gap: 10px; padding: 12px; border: 1px dashed var(--border); border-radius: 8px; }
+.ftl.good { color: var(--ok); }
+.ftl.fair { color: #b8860b; }
+.ftl.low { color: var(--warn); }
+.meter { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--ok); }
+.meter i.fair { background: #d4a017; }
+.meter i.low { background: var(--warn); }
+@media (prefers-color-scheme: dark) { .ftl.fair { color: #ffd43b; } }

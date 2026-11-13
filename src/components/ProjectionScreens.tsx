@@ -3,6 +3,9 @@ import {
   PROJECTORS,
   SCREEN_SIZES,
   MIN_OVERLAP,
+  PROJECTOR_MODELS,
+  TARGET_FTL,
+  brightness,
   calcScreen,
   newScreen,
   presetFor,
@@ -15,10 +18,18 @@ const GROUPS = [...new Set(SCREEN_SIZES.map((s) => s.group))];
 
 export default function ProjectionScreens({ screens, onChange }: { screens: ProjScreen[]; onChange: (s: ProjScreen[]) => void }) {
   const update = (i: number, patch: Partial<ProjScreen>) => onChange(screens.map((s, j) => (j === i ? { ...s, ...patch } : s)));
-  const total = screens.reduce((n, s) => {
+  let total = 0;
+  const byModel = new Map<string, number>();
+  for (const s of screens) {
     const c = calcScreen(s);
-    return n + (c.ok ? c.qty : 0);
-  }, 0);
+    if (!c.ok) continue;
+    total += c.qty;
+    const b = brightness(s, c);
+    if (b) {
+      const label = `${b.modelName} (${fmt(b.lumens)} lm)`;
+      byModel.set(label, (byModel.get(label) ?? 0) + b.total * c.qty);
+    }
+  }
 
   return (
     <div className="led">
@@ -37,10 +48,11 @@ export default function ProjectionScreens({ screens, onChange }: { screens: Proj
       <button type="button" className="secondary no-print" onClick={() => onChange([...screens, newScreen(screens.length + 1)])}>
         + Add projection screen
       </button>
-      {total > 1 && (
+      {(total > 1 || byModel.size > 0) && (
         <div className="led-totals">
           <strong>All projection screens</strong>
-          <span>{total} screens</span>
+          <span>{total} screen{total === 1 ? "" : "s"}</span>
+          {[...byModel].map(([m, n]) => <span key={m}>{n} × {m}</span>)}
         </div>
       )}
     </div>
@@ -148,6 +160,7 @@ function ScreenCard({
           {c.projectors > 1 && (
             <p className="muted small">Estimate: the fewest projectors that leave at least {MIN_OVERLAP * 100}% overlap at each blend.</p>
           )}
+          <ProjectorBlock s={s} c={c} onChange={onChange} />
         </>
       )}
 
@@ -155,6 +168,100 @@ function ScreenCard({
         Screen notes
         <input value={s.notes} maxLength={2000} onChange={(e) => onChange({ notes: e.target.value })} placeholder="Front / rear, surface, position, rigging…" />
       </label>
+    </div>
+  );
+}
+
+function ProjectorBlock({ s, c, onChange }: { s: ProjScreen; c: Extract<ReturnType<typeof calcScreen>, { ok: true }>; onChange: (p: Partial<ProjScreen>) => void }) {
+  if (!s.pjModel) {
+    return (
+      <button
+        type="button"
+        className="secondary no-print add-pj"
+        onClick={() => onChange({ pjModel: PROJECTOR_MODELS[1].key, pjLumens: String(PROJECTOR_MODELS[1].lumens) })}
+      >
+        + Add projector
+      </button>
+    );
+  }
+  const b = brightness(s, c);
+  return (
+    <div className="pj">
+      <div className="spread">
+        <strong>Projector</strong>
+        <button type="button" className="link danger-text no-print" onClick={() => onChange({ pjModel: "", pjLumens: "" })}>Remove projector</button>
+      </div>
+      <div className="grid4">
+        <label className="span2">
+          Model
+          <select
+            value={s.pjModel}
+            onChange={(e) => {
+              const m = PROJECTOR_MODELS.find((x) => x.key === e.target.value);
+              onChange(m ? { pjModel: m.key, pjLumens: String(m.lumens) } : { pjModel: "custom" });
+            }}
+          >
+            {["Panasonic", "Barco"].map((brand) => (
+              <optgroup key={brand} label={brand}>
+                {PROJECTOR_MODELS.filter((m) => m.brand === brand).map((m) => (
+                  <option key={m.key} value={m.key}>{m.name} · {fmt(m.lumens)} lm</option>
+                ))}
+              </optgroup>
+            ))}
+            <option value="custom">Custom lumens</option>
+          </select>
+        </label>
+        <label>
+          Lumens
+          <input
+            inputMode="numeric"
+            value={s.pjLumens}
+            onChange={(e) => {
+              const m = PROJECTOR_MODELS.find((x) => x.key === s.pjModel);
+              onChange({ pjLumens: e.target.value, ...(m && e.target.value !== String(m.lumens) ? { pjModel: "custom" } : {}) });
+            }}
+          />
+        </label>
+        <label>
+          Screen gain
+          <input inputMode="decimal" value={s.gain} onChange={(e) => onChange({ gain: e.target.value })} />
+        </label>
+        <label className="span2">
+          Stacking
+          <select value={s.stack} onChange={(e) => onChange({ stack: e.target.value })}>
+            <option value="1">Single</option>
+            <option value="2">Double stacked</option>
+          </select>
+        </label>
+      </div>
+      {!b ? (
+        <p className="muted small">Enter the projector&apos;s lumens.</p>
+      ) : (
+        <>
+          <dl className="wall-result">
+            <div className="hero">
+              <dt>Brightness</dt>
+              <dd className={`ftl ${b.rating}`}>{b.ftl.toFixed(1)} fL</dd>
+              <dd className="muted small">{fmt(Math.round(b.nits))} nits · {b.rating === "good" ? "meets" : "below"} {TARGET_FTL} fL</dd>
+            </div>
+            <div className="hero">
+              <dt>Recommended</dt>
+              <dd>{fmt(b.recommendedLumens)} lm</dd>
+              <dd className="muted small">per projector{b.stack > 1 ? " (stacked pair)" : ""} for {TARGET_FTL} fL</dd>
+            </div>
+            <div className="hero">
+              <dt>Projectors</dt>
+              <dd>{b.total}{c.qty > 1 && <span className="muted small"> per screen · {b.total * c.qty} total</span>}</dd>
+              <dd className="muted small">{c.projectors} across{b.stack > 1 ? " × 2 stacked" : ""} · {fmt(b.lumens)} lm each</dd>
+            </div>
+          </dl>
+          <div className="meter" aria-hidden="true"><i className={b.rating} style={{ width: `${Math.min(b.ftl / 80, 1) * 100}%` }} /></div>
+          <p className="muted small">
+            fL = lumens × gain ÷ {c.projectors > 1 ? "the area one projector lights" : "screen area"} ({b.areaSqFt.toFixed(1)} sq ft), as in AV Calcs.
+            Uses rated lumens; real output is lower with lamp or laser age and lens choice.
+          </p>
+        </>
+      )}
     </div>
   );
 }
