@@ -22,7 +22,7 @@ The sidebar on each show says whether the latest changes have been downloaded, a
 - **Show details:** OP number, show name, client, dates.
 - **Questions and checklist by category, in three groups:**
   - **General Info:** Project Info, Schedule & Travel, Client Needs, Crew, Documents & Files
-  - **Video System:** LED Walls, Projection & Screens, Monitors & DSMs, Switching & Routing, Sources & Playback, Records & Streaming
+  - **Video System:** LED Walls, Projection & Screens, Monitors & DSMs, Switching & Routing, Cameras, Sources & Playback, Records & Streaming
   - **Room Setup:** FOH, Video Village, BOH, Rigging/Power/Cabling, Stage
 
    Questions get a written answer; checklist items get a checkbox and a note. The starting list comes from *PM Questions and Checklist.xlsx*.
@@ -48,6 +48,7 @@ The version number shows next to **Show Sheets** at the top of every page, on pr
 
 | Version | Changes |
 |---|---|
+| v1.8 | New Cameras category in Video System (the Cameras question moved there from Sources & Playback, plus camera checklist items). |
 | v1.7 | Categories grouped under General Info, Video System and Room Setup on the sheet, sidebar, printout and Questions page; a category's group can be changed. |
 | v1.6 | Cleaner layout: categories are collapsible panels (open ones are remembered; Expand all / Collapse all), and LED walls and projection screens collapse to a one-line summary. Double-stacked projectors show one projector's brightness, with the stacked pair's combined brightness underneath. |
 | v1.5 | Projection screens: add a projector (models and lumens from AV Calcs, or custom lumens), screen gain and double stacking; shows footlamberts, nits and recommended lumens. |

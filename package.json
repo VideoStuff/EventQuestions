@@ -1,6 +1,6 @@
 {
   "name": "eventquestions",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
   "description": "Show info sheets: PM call notes, checklist and LED wall planning for each show. Runs entirely in the browser.",
   "type": "module",

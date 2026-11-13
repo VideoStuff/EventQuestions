@@ -6,6 +6,16 @@ import type { Bank, GroupId } from "./types";
 type Item = ["q" | "c", string];
 
 
+// The "Cameras" question keeps its ID from when it sat under Sources & Playback.
+const CAMERA_ITEMS: Item[] = [
+  ["q", "Cameras"],
+  ["c", "Camera Positions & Risers"],
+  ["c", "Lenses"],
+  ["c", "Camera Operators"],
+  ["c", "Comms for Camera Ops"],
+  ["c", "IMAG Feeds"],
+];
+
 export const SEED: { id?: string; name: string; special?: string; items: Item[] }[] = [
   {
     name: "Project Info",
@@ -68,9 +78,12 @@ export const SEED: { id?: string; name: string; special?: string; items: Item[] 
     ],
   },
   {
+    name: "Cameras",
+    items: CAMERA_ITEMS,
+  },
+  {
     name: "Sources & Playback",
     items: [
-      ["q", "Cameras"],
       ["q", "Laptops"],
       ["q", "Media Servers"],
     ],
@@ -169,7 +182,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 /** Where each starting category sits: its group and its order within the group. */
 const LAYOUT: Record<GroupId, string[]> = {
   general: ["c-project-info", "c-schedule-travel", "c-client-needs", "c-crew", "c-documents-files"],
-  video: ["c-led-walls", "c-projection-screens", "c-monitors-dsms", "c-switching-routing", "c-sources-playback", "c-records-streaming"],
+  video: ["c-led-walls", "c-projection-screens", "c-monitors-dsms", "c-switching-routing", "c-cameras", "c-sources-playback", "c-records-streaming"],
   room: ["c-foh-video-village", "c-video-village", "c-boh", "c-rigging-power-cabling", "c-stage"],
 };
 const LAYOUT_ORDER = (Object.keys(LAYOUT) as GroupId[]).flatMap((g) => LAYOUT[g].map((id) => ({ id, group: g })));
@@ -202,7 +215,7 @@ export function seedBank(): Bank {
  * the older version made them, so your own renames and moves are left alone.
  */
 export function migrateBank(bank: Bank): Bank {
-  const b = splitFohVideoVillage(addProjectionPlanner(bank));
+  const b = addCameras(splitFohVideoVillage(addProjectionPlanner(bank)));
   // Lists saved before groups existed: put the starting categories into their groups.
   return b.categories.some((c) => !c.group) ? applyLayout(b) : b;
 }
@@ -225,5 +238,22 @@ function splitFohVideoVillage(bank: Bank): Bank {
   const questions = bank.questions.map((q) =>
     q.categoryId === foh.id && vvIds.includes(q.id) ? { ...q, categoryId: "c-video-village" } : q
   );
+  return { categories, questions };
+}
+
+// "Cameras" became its own Video System category (it was a question under Sources & Playback).
+function addCameras(bank: Bank): Bank {
+  if (bank.categories.some((c) => c.id === "c-cameras")) return bank;
+  const cat = { id: "c-cameras", name: "Cameras", group: "video" as const };
+  const at = bank.categories.findIndex((c) => c.id === "c-sources-playback");
+  const categories = at < 0 ? [...bank.categories, cat] : [...bank.categories.slice(0, at), cat, ...bank.categories.slice(at)];
+  const questions = bank.questions.map((q) =>
+    q.id === "q-cameras" && q.categoryId === "c-sources-playback" ? { ...q, categoryId: cat.id } : q
+  );
+  const have = new Set(questions.map((q) => q.id));
+  for (const [k, text] of CAMERA_ITEMS) {
+    const id = `q-${slug(text)}`;
+    if (!have.has(id)) questions.push({ id, categoryId: cat.id, text, kind: k === "c" ? "check" : "text" });
+  }
   return { categories, questions };
 }
