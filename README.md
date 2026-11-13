@@ -20,7 +20,12 @@ The sidebar on each show says whether the latest changes have been downloaded, a
 ## What's on a sheet
 
 - **Show details:** OP number, show name, client, dates.
-- **Questions and checklist by category:** Project Info, Schedule & Travel, Client Needs, LED Walls, Projection & Screens, Monitors & DSMs, Switching & Routing, Sources & Playback, Stage, Records & Streaming, FOH, Video Village, BOH, Rigging/Power/Cabling, Crew, Documents & Files. Questions get a written answer; checklist items get a checkbox and a note. The starting list comes from *PM Questions and Checklist.xlsx*.
+- **Questions and checklist by category, in three groups:**
+  - **General Info:** Project Info, Schedule & Travel, Client Needs, Crew, Documents & Files
+  - **Video System:** LED Walls, Projection & Screens, Monitors & DSMs, Switching & Routing, Sources & Playback, Records & Streaming
+  - **Room Setup:** FOH, Video Village, BOH, Rigging/Power/Cabling, Stage
+
+   Questions get a written answer; checklist items get a checkbox and a note. The starting list comes from *PM Questions and Checklist.xlsx*.
 - **LED wall planner:** as many walls as the show needs, each sized by **width × height in feet** (rounded to whole panels) or by **panel count**. Shows the real size (ft-in, decimal ft, meters), resolution, aspect ratio, panel count, pixel pitch, max power and panel weight; a quantity field covers identical walls, and a totals line adds up panels by type and power.
   - **ROE Diamond 2.6**: 500 × 500 mm, 192 × 192 px, 180 W.
   - **ROE Graphite 2.6**: 500 × 1000 mm, 192 × 384 px, 320 W, plus 500 × 500 half panels (160 W).
@@ -43,6 +48,7 @@ The version number shows next to **Show Sheets** at the top of every page, on pr
 
 | Version | Changes |
 |---|---|
+| v1.7 | Categories grouped under General Info, Video System and Room Setup on the sheet, sidebar, printout and Questions page; a category's group can be changed. |
 | v1.6 | Cleaner layout: categories are collapsible panels (open ones are remembered; Expand all / Collapse all), and LED walls and projection screens collapse to a one-line summary. Double-stacked projectors show one projector's brightness, with the stacked pair's combined brightness underneath. |
 | v1.5 | Projection screens: add a projector (models and lumens from AV Calcs, or custom lumens), screen gain and double stacking; shows footlamberts, nits and recommended lumens. |
 | v1.4 | Projection screens show the number of projectors and the estimated blend overlap (pixels and feet) instead of a warning. |

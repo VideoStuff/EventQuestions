@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { addQuestion, deleteShow, duplicateShow, markDownloaded, patchShow, removeShowQuestion, type Update } from "../store";
 import { downloadShow } from "../files";
-import { hasAnswer, questionsFor, type Answer, type Bank, type Question, type Show } from "../types";
+import { GROUPS, groupOf, hasAnswer, questionsFor, type Answer, type Category, type Bank, type Question, type Show } from "../types";
 import LedWalls from "./LedWalls";
 import ProjectionScreens from "./ProjectionScreens";
 import { go } from "../router";
@@ -25,6 +25,16 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
   const jump = (id: string) => {
     toggle(id, true);
     requestAnimationFrame(() => document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+  const progress = (cats: Category[]) => {
+    const qs = cats.flatMap((c) => byCat(c.id));
+    return { n: qs.filter((q) => hasAnswer(q, answers[q.id])).length, total: qs.length };
+  };
+  const groups = GROUPS.map((g) => ({ ...g, cats: sections.filter((c) => groupOf(c) === g.id) })).filter((g) => g.cats.length);
+  const setGroup = (cats: Category[], openIt: boolean) => {
+    const next = new Set(open);
+    cats.forEach((c) => (openIt ? next.add(c.id) : next.delete(c.id)));
+    setAll([...next]);
   };
   const plannerSummary = (special?: string) =>
     special === "led" && walls.length ? `${walls.length} wall${walls.length > 1 ? "s" : ""}`
@@ -51,7 +61,9 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
           <button type="button" className="link small" onClick={() => setAll([])}>Collapse all</button>
         </div>
         <nav>
-          {sections.map((c) => {
+          {groups.map((g) => [
+            <div key={`g-${g.id}`} className="toc-group">{g.name}</div>,
+            ...g.cats.map((c) => {
             const qs = byCat(c.id);
             const n = qs.filter((q) => hasAnswer(q, answers[q.id])).length;
             const extra = plannerSummary(c.special);
@@ -63,7 +75,8 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
                 </span>
               </a>
             );
-          })}
+            }),
+          ])}
         </nav>
         <a className="button secondary" href={`#/show/${show.id}/print`}>Print / PDF</a>
       </aside>
@@ -80,7 +93,19 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
           </div>
         </section>
 
-        {sections.map((c) => {
+        {groups.map((g) => {
+          const pg = progress(g.cats);
+          const allOpen = g.cats.every((c) => open.has(c.id));
+          return (
+            <div key={g.id} className="group" id={`group-${g.id}`}>
+              <div className="group-head">
+                <h2>{g.name}</h2>
+                <span className="count">{pg.n}/{pg.total}</span>
+                <button type="button" className="link small no-print" onClick={() => setGroup(g.cats, !allOpen)}>
+                  {allOpen ? "Close all" : "Open all"}
+                </button>
+              </div>
+        {g.cats.map((c) => {
           const qs = byCat(c.id);
           const text = qs.filter((q) => q.kind === "text");
           const checks = qs.filter((q) => q.kind === "check");
@@ -89,14 +114,14 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
           const extra = plannerSummary(c.special);
           return (
             <section key={c.id} id={`cat-${c.id}`} className={`category ${isOpen ? "open" : ""}`}>
-              <h2>
+              <h3>
                 <button type="button" className="cat-head" aria-expanded={isOpen} aria-controls={`body-${c.id}`} onClick={() => toggle(c.id)}>
                   <span className="chev" aria-hidden="true">›</span>
                   <span className="cat-title">{c.name}</span>
                   {extra && <span className="pill">{extra}</span>}
                   <span className={`count ${qs.length && n === qs.length ? "full" : ""}`}>{n}/{qs.length}</span>
                 </button>
-              </h2>
+              </h3>
               {isOpen && <div className="cat-body" id={`body-${c.id}`}>
 
               {c.special === "led" && <LedWalls walls={walls} onChange={(w) => patchShow(update, show.id, { walls: w })} />}
@@ -143,6 +168,9 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
               />
               </div>}
             </section>
+          );
+        })}
+            </div>
           );
         })}
 

@@ -1,6 +1,6 @@
 import { aspect, calcWall, fmt, ftIn, meters, totals, PANEL_OPTIONS } from "../led";
 import { APP_VERSION } from "../version";
-import { questionsFor, type Bank, type Show } from "../types";
+import { GROUPS, groupOf, questionsFor, type Bank, type Show } from "../types";
 import { brightness, calcScreen, sizeMeters, sizeText } from "../projection";
 
 export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
@@ -19,14 +19,17 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
         {[m.client, m.start_date && (m.end_date && m.end_date !== m.start_date ? `${m.start_date} – ${m.end_date}` : m.start_date)].filter(Boolean).join(" · ")}
       </p>
 
-      {bank.categories.map((c) => {
+      {GROUPS.map((g) => (
+        <div key={g.id} className="print-group">
+          <h2 className="print-group-title">{g.name}</h2>
+      {bank.categories.filter((c) => groupOf(c) === g.id).map((c) => {
         const qs = questions.filter((q) => q.categoryId === c.id);
         const hasWalls = c.special === "led" && show.walls.length > 0;
         const hasScreens = c.special === "projection" && show.screens.length > 0;
         if (!qs.length && !hasWalls && !hasScreens) return null;
         return (
           <section key={c.id} className="print-cat">
-            <h2>{c.name}</h2>
+            <h3>{c.name}</h3>
             {hasWalls && (
               <table className="walls">
                 <thead>
@@ -113,6 +116,8 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
           </section>
         );
       })}
+        </div>
+      ))}
       <p className="muted small">Printed {new Date().toISOString().slice(0, 10)} · Show Sheets v{APP_VERSION}</p>
     </div>
   );

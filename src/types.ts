@@ -3,9 +3,22 @@ import type { ProjScreen } from "./projection";
 
 export type QuestionKind = "text" | "check";
 
+export type GroupId = "general" | "video" | "room";
+
+/** Top-level groups on a show sheet, in display order. */
+export const GROUPS: { id: GroupId; name: string }[] = [
+  { id: "general", name: "General Info" },
+  { id: "video", name: "Video System" },
+  { id: "room", name: "Room Setup" },
+];
+
+export const groupOf = (c: Category): GroupId => (GROUPS.some((g) => g.id === c.group) ? c.group! : "general");
+
 export interface Category {
   id: string;
   name: string;
+  /** Which group the category sits under (older data has none: treated as General Info). */
+  group?: GroupId;
   /** "led" shows the LED wall planner, "projection" the projection screen planner. */
   special?: string;
 }

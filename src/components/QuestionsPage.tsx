@@ -8,11 +8,12 @@ import {
   moveCategory,
   moveQuestion,
   renameCategory,
+  setCategoryGroup,
   type Data,
   type Update,
 } from "../store";
 import { downloadQuestions, mergeBank, readFile } from "../files";
-import type { QuestionKind } from "../types";
+import { GROUPS, groupOf, type GroupId, type QuestionKind } from "../types";
 
 export default function QuestionsPage({ data, update }: { data: Data; update: Update }) {
   const { categories, questions } = data.bank;
@@ -54,7 +55,13 @@ export default function QuestionsPage({ data, update }: { data: Data; update: Up
       </p>
       {msg && <div className={`card ${msg.kind}`}>{msg.text}</div>}
 
-      {categories.map((c, ci) => {
+      {GROUPS.map((g) => {
+        const cats = categories.filter((c) => groupOf(c) === g.id);
+        return (
+          <div key={g.id} className="group">
+            <div className="group-head"><h2>{g.name}</h2></div>
+            {cats.length === 0 && <p className="muted small">No categories in this group.</p>}
+      {cats.map((c, ci) => {
         const list = questions.filter((q) => q.categoryId === c.id);
         return (
           <section className="card" id={`cat-${c.id}`} key={c.id}>
@@ -70,7 +77,10 @@ export default function QuestionsPage({ data, update }: { data: Data; update: Up
               />
               <div className="row">
                 <button type="button" className="secondary small-btn" disabled={ci === 0} onClick={() => moveCategory(update, c.id, -1)} aria-label="Move category up">↑</button>
-                <button type="button" className="secondary small-btn" disabled={ci === categories.length - 1} onClick={() => moveCategory(update, c.id, 1)} aria-label="Move category down">↓</button>
+                <button type="button" className="secondary small-btn" disabled={ci === cats.length - 1} onClick={() => moveCategory(update, c.id, 1)} aria-label="Move category down">↓</button>
+                <select value={groupOf(c)} aria-label={`Group for ${c.name}`} className="group-select" onChange={(e) => setCategoryGroup(update, c.id, e.target.value as GroupId)}>
+                  {GROUPS.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </select>
                 {canDeleteCategory(data, c.id) && (
                   <button type="button" className="danger small-btn" onClick={() => deleteCategory(update, c.id)}>Delete</button>
                 )}
@@ -130,17 +140,23 @@ export default function QuestionsPage({ data, update }: { data: Data; update: Up
           </section>
         );
       })}
+          </div>
+        );
+      })}
 
       <form
         className="card row"
         onSubmit={(e) => {
           e.preventDefault();
           const name = String(new FormData(e.currentTarget).get("name") ?? "").trim().slice(0, 100);
-          if (name) addCategory(update, name);
+          if (name) addCategory(update, name, (new FormData(e.currentTarget).get("group") as GroupId) || "general");
           e.currentTarget.reset();
         }}
       >
         <input name="name" placeholder="New category name" maxLength={100} required style={{ flex: 1, minWidth: 200 }} aria-label="New category name" />
+        <select name="group" aria-label="Group for the new category" className="group-select">
+          {GROUPS.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
         <button type="submit">Add category</button>
       </form>
     </div>

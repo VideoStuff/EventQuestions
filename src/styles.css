@@ -260,3 +260,17 @@ table.walls th, table.walls td { border: 1px solid var(--border); padding: 4px 6
 }
 .cat-body > .add-q, .cat-body > .led > button.secondary { justify-self: start; }
 .combined { margin-top: 4px; }
+
+/* ---------- groups (v1.7) ---------- */
+.group { margin: 28px 0 8px; }
+.group:first-of-type { margin-top: 8px; }
+.group-head { display: flex; align-items: baseline; gap: 12px; padding: 0 2px 8px; margin-bottom: 8px; border-bottom: 2px solid var(--text); }
+.group-head h2 { margin: 0; font-size: 1.3rem; letter-spacing: 0.01em; }
+.group-head .count { margin-left: auto; }
+.category h3 { margin: 0; font-size: 1rem; }
+.toc-group { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 10px 8px 2px; }
+.toc-group:first-child { padding-top: 0; }
+.group-select { width: auto; padding: 4px 8px; font-size: 0.85rem; }
+.print-group-title { font-size: 1.35rem; border-bottom: 2px solid var(--text) !important; margin-top: 28px; }
+.print h3 { border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-top: 18px; }
+@media (max-width: 860px) { .toc-group { display: none; } }

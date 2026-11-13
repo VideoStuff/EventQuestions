@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { migrateBank, seedBank } from "./seed";
 import { newWall, sanitizeWalls } from "./led";
 import { newScreen, sanitizeScreens } from "./projection";
-import { newId, type Answer, type Bank, type Category, type Question, type Show, type ShowMeta } from "./types";
+import { groupOf, newId, type GroupId, type Answer, type Bank, type Category, type Question, type Show, type ShowMeta } from "./types";
 
 const KEY = "show-sheets:v1";
 
@@ -153,8 +153,8 @@ export const moveQuestion = (update: Update, id: string, dir: -1 | 1) =>
     return { ...d, bank: { ...d.bank, questions: list } };
   });
 
-export function addCategory(update: Update, name: string): Category {
-  const c = { id: newId("c"), name };
+export function addCategory(update: Update, name: string, group: GroupId = "general"): Category {
+  const c: Category = { id: newId("c"), name, group };
   update((d) => ({ ...d, bank: { ...d.bank, categories: [...d.bank.categories, c] } }));
   return c;
 }
@@ -162,12 +162,23 @@ export function addCategory(update: Update, name: string): Category {
 export const renameCategory = (update: Update, id: string, name: string) =>
   update((d) => ({ ...d, bank: { ...d.bank, categories: d.bank.categories.map((c) => (c.id === id ? { ...c, name } : c)) } }));
 
+export const setCategoryGroup = (update: Update, id: string, group: GroupId) =>
+  update((d) => {
+    const c = d.bank.categories.find((x) => x.id === id);
+    if (!c) return d;
+    // Moving to another group puts it at the end of that group.
+    return { ...d, bank: { ...d.bank, categories: [...d.bank.categories.filter((x) => x.id !== id), { ...c, group }] } };
+  });
+
+/** Swap a category with its neighbour in the same group. */
 export const moveCategory = (update: Update, id: string, dir: -1 | 1) =>
   update((d) => {
     const list = [...d.bank.categories];
     const i = list.findIndex((c) => c.id === id);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= list.length) return d;
+    if (i < 0) return d;
+    let j = i + dir;
+    while (j >= 0 && j < list.length && groupOf(list[j]) !== groupOf(list[i])) j += dir;
+    if (j < 0 || j >= list.length) return d;
     [list[i], list[j]] = [list[j], list[i]];
     return { ...d, bank: { ...d.bank, categories: list } };
   });
@@ -219,7 +230,12 @@ export function cleanCategory(raw: unknown): Category | null {
   const r = (raw ?? {}) as Record<string, unknown>;
   const id = str(r.id, 60), name = str(r.name, 100);
   if (!id || !name) return null;
-  return { id, name, ...(r.special === "led" || r.special === "projection" ? { special: r.special } : {}) };
+  return {
+    id,
+    name,
+    ...(r.special === "led" || r.special === "projection" ? { special: r.special } : {}),
+    ...(r.group === "general" || r.group === "video" || r.group === "room" ? { group: r.group } : {}),
+  };
 }
 
 export { sanitizeWalls, sanitizeScreens };

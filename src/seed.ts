@@ -1,4 +1,4 @@
-import type { Bank } from "./types";
+import type { Bank, GroupId } from "./types";
 
 
 // Starting questionnaire, built from "PM Questions and Checklist.xlsx".
@@ -166,6 +166,25 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
  * The starting question list. IDs come from the text so files made in any browser
  * line up with each other.
  */
+/** Where each starting category sits: its group and its order within the group. */
+const LAYOUT: Record<GroupId, string[]> = {
+  general: ["c-project-info", "c-schedule-travel", "c-client-needs", "c-crew", "c-documents-files"],
+  video: ["c-led-walls", "c-projection-screens", "c-monitors-dsms", "c-switching-routing", "c-sources-playback", "c-records-streaming"],
+  room: ["c-foh-video-village", "c-video-village", "c-boh", "c-rigging-power-cabling", "c-stage"],
+};
+const LAYOUT_ORDER = (Object.keys(LAYOUT) as GroupId[]).flatMap((g) => LAYOUT[g].map((id) => ({ id, group: g })));
+
+/** Put categories into their groups, in the layout's order; others keep their order after them. */
+function applyLayout(bank: Bank): Bank {
+  const known = new Map(LAYOUT_ORDER.map((x, i) => [x.id, { ...x, i }]));
+  const cats = bank.categories.map((c, i) => {
+    const k = known.get(c.id);
+    return { c: { ...c, group: c.group ?? k?.group ?? "general" }, order: k ? k.i : LAYOUT_ORDER.length + i };
+  });
+  cats.sort((a, b) => a.order - b.order);
+  return { ...bank, categories: cats.map((x) => x.c) };
+}
+
 export function seedBank(): Bank {
   const bank: Bank = { categories: [], questions: [] };
   for (const c of SEED) {
@@ -175,7 +194,7 @@ export function seedBank(): Bank {
       bank.questions.push({ id: `q-${slug(text)}`, categoryId: cid, text, kind: k === "c" ? "check" : "text" });
     }
   }
-  return bank;
+  return applyLayout(bank);
 }
 
 /**
@@ -183,7 +202,9 @@ export function seedBank(): Bank {
  * the older version made them, so your own renames and moves are left alone.
  */
 export function migrateBank(bank: Bank): Bank {
-  return splitFohVideoVillage(addProjectionPlanner(bank));
+  const b = splitFohVideoVillage(addProjectionPlanner(bank));
+  // Lists saved before groups existed: put the starting categories into their groups.
+  return b.categories.some((c) => !c.group) ? applyLayout(b) : b;
 }
 
 // The projection screen planner lives in "Projection & Screens".
