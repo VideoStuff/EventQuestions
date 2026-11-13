@@ -3,15 +3,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const COOKIE = "eq_admin";
+const COOKIE = "eq_session";
 
 function password(): string {
-  const p = process.env.ADMIN_PASSWORD;
-  if (!p) throw new Error("ADMIN_PASSWORD is not set. Copy .env.example to .env.local and set it.");
+  const p = process.env.APP_PASSWORD;
+  if (!p) throw new Error("APP_PASSWORD is not set. Copy .env.example to .env.local and set it.");
   return p;
 }
 
-// The session token is derived from the password, so changing ADMIN_PASSWORD signs everyone out.
+// The session token is derived from the password, so changing APP_PASSWORD signs everyone out.
 function token(): string {
   return createHmac("sha256", password()).update("eventquestions-admin-session").digest("hex");
 }
@@ -26,14 +26,14 @@ export function checkPassword(candidate: string): boolean {
   return safeEqual(candidate, password());
 }
 
-export async function isAdmin(): Promise<boolean> {
+export async function isSignedIn(): Promise<boolean> {
   const value = (await cookies()).get(COOKIE)?.value;
   return !!value && safeEqual(value, token());
 }
 
-/** Call at the top of every admin page, server action and route handler. */
-export async function requireAdmin(): Promise<void> {
-  if (!(await isAdmin())) redirect("/admin/login");
+/** Call at the top of every page, server action and route handler. */
+export async function requireUser(): Promise<void> {
+  if (!(await isSignedIn())) redirect("/login");
 }
 
 export async function signIn() {

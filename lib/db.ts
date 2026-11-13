@@ -2,29 +2,9 @@ import "server-only";
 import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
-
-export type QuestionStatus = "new" | "approved" | "dismissed";
-export const STATUSES: QuestionStatus[] = ["new", "approved", "dismissed"];
-
-export interface EventRow {
-  id: number;
-  slug: string;
-  title: string;
-  description: string;
-  event_date: string | null;
-  is_open: number;
-  created_at: string;
-}
-
-export interface QuestionRow {
-  id: number;
-  event_id: number;
-  name: string;
-  email: string;
-  body: string;
-  status: QuestionStatus;
-  created_at: string;
-}
+import { SEED } from "./seed";
+import { sanitizeWalls, type LedWall } from "./led";
+import type { Answer, Category, Project, ProjectMeta, Question, QuestionKind } from "./types";
 
 const globalForDb = globalThis as unknown as { __eqDb?: DatabaseSync };
 
@@ -35,27 +15,49 @@ function open(): DatabaseSync {
   db.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
-    CREATE TABLE IF NOT EXISTS events (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      slug        TEXT NOT NULL UNIQUE,
-      title       TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      event_date  TEXT,
-      is_open     INTEGER NOT NULL DEFAULT 1,
-      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    CREATE TABLE IF NOT EXISTS categories (
+      id       INTEGER PRIMARY KEY AUTOINCREMENT,
+      name     TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      special  TEXT
+    );
+    CREATE TABLE IF NOT EXISTS projects (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      op_number  TEXT NOT NULL DEFAULT '',
+      name       TEXT NOT NULL DEFAULT '',
+      client     TEXT NOT NULL DEFAULT '',
+      start_date TEXT NOT NULL DEFAULT '',
+      end_date   TEXT NOT NULL DEFAULT '',
+      answers    TEXT NOT NULL DEFAULT '{}',
+      led_walls  TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS questions (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      event_id   INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-      name       TEXT NOT NULL DEFAULT '',
-      email      TEXT NOT NULL DEFAULT '',
-      body       TEXT NOT NULL,
-      status     TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new','approved','dismissed')),
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      category_id INTEGER NOT NULL REFERENCES categories(id),
+      text        TEXT NOT NULL,
+      kind        TEXT NOT NULL CHECK (kind IN ('text','check')),
+      position    INTEGER NOT NULL,
+      project_id  INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+      archived    INTEGER NOT NULL DEFAULT 0
     );
-    CREATE INDEX IF NOT EXISTS idx_questions_event ON questions(event_id, created_at);
   `);
+  seed(db);
   return db;
+}
+
+function seed(db: DatabaseSync) {
+  const { n } = db.prepare("SELECT COUNT(*) AS n FROM categories").get() as { n: number };
+  if (n > 0) return;
+  const addCat = db.prepare("INSERT INTO categories (name, position, special) VALUES (?, ?, ?)");
+  const addQ = db.prepare("INSERT INTO questions (category_id, text, kind, position) VALUES (?, ?, ?, ?)");
+  db.exec("BEGIN");
+  SEED.forEach((c, ci) => {
+    const catId = Number(addCat.run(c.name, (ci + 1) * 10, c.special ?? null).lastInsertRowid);
+    c.items.forEach(([k, text], qi) => addQ.run(catId, text, k === "c" ? "check" : "text", (qi + 1) * 10));
+  });
+  db.exec("COMMIT");
 }
 
 export function db(): DatabaseSync {
@@ -63,63 +65,158 @@ export function db(): DatabaseSync {
   return globalForDb.__eqDb;
 }
 
-// ---- events ----
+// node:sqlite returns null-prototype rows; copy them into plain objects so React can pass them to the browser.
+const all = <T>(sql: string, ...args: (string | number | null)[]) =>
+  db().prepare(sql).all(...args).map((r) => ({ ...r })) as unknown as T[];
+const one = <T>(sql: string, ...args: (string | number | null)[]) => {
+  const r = db().prepare(sql).get(...args);
+  return (r ? { ...r } : undefined) as T | undefined;
+};
+const run = (sql: string, ...args: (string | number | null)[]) => db().prepare(sql).run(...args);
 
-export function listEvents(): (EventRow & { question_count: number; new_count: number })[] {
-  return db()
-    .prepare(
-      `SELECT e.*,
-              COUNT(q.id) AS question_count,
-              COALESCE(SUM(q.status = 'new'), 0) AS new_count
-         FROM events e LEFT JOIN questions q ON q.event_id = e.id
-        GROUP BY e.id
-        ORDER BY e.created_at DESC, e.id DESC`
-    )
-    .all() as unknown as (EventRow & { question_count: number; new_count: number })[];
+// ---------- categories ----------
+
+export const listCategories = () => all<Category>("SELECT * FROM categories ORDER BY position, id");
+
+export function addCategory(name: string): number {
+  const { p } = one<{ p: number | null }>("SELECT MAX(position) AS p FROM categories")!;
+  return Number(run("INSERT INTO categories (name, position) VALUES (?, ?)", name, (p ?? 0) + 10).lastInsertRowid);
 }
 
-export function getEventById(id: number): EventRow | undefined {
-  return db().prepare("SELECT * FROM events WHERE id = ?").get(id) as EventRow | undefined;
+export const renameCategory = (id: number, name: string) => run("UPDATE categories SET name = ? WHERE id = ?", name, id);
+
+/** Deletes a category only if no questions use it. Returns false otherwise. */
+export function deleteCategory(id: number): boolean {
+  const { n } = one<{ n: number }>("SELECT COUNT(*) AS n FROM questions WHERE category_id = ?", id)!;
+  if (n > 0) return false;
+  run("DELETE FROM categories WHERE id = ?", id);
+  return true;
 }
 
-export function getEventBySlug(slug: string): EventRow | undefined {
-  return db().prepare("SELECT * FROM events WHERE slug = ?").get(slug) as EventRow | undefined;
+function swapPositions(table: "categories" | "questions", a: { id: number; position: number }, b: { id: number; position: number }) {
+  db().exec("BEGIN");
+  run(`UPDATE ${table} SET position = ? WHERE id = ?`, b.position, a.id);
+  run(`UPDATE ${table} SET position = ? WHERE id = ?`, a.position, b.id);
+  db().exec("COMMIT");
 }
 
-export function createEvent(input: { slug: string; title: string; description: string; event_date: string | null }): number {
-  const r = db()
-    .prepare("INSERT INTO events (slug, title, description, event_date) VALUES (?, ?, ?, ?)")
-    .run(input.slug, input.title, input.description, input.event_date);
-  return Number(r.lastInsertRowid);
+export function moveCategory(id: number, dir: "up" | "down") {
+  const list = listCategories();
+  const i = list.findIndex((c) => c.id === id);
+  const j = dir === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  swapPositions("categories", list[i], list[j]);
 }
 
-export function setEventOpen(id: number, open: boolean) {
-  db().prepare("UPDATE events SET is_open = ? WHERE id = ?").run(open ? 1 : 0, id);
+// ---------- questions ----------
+
+/** Questions asked on every project (the question bank). */
+export const listBankQuestions = () =>
+  all<Question>("SELECT * FROM questions WHERE project_id IS NULL ORDER BY category_id, position, id");
+
+/** Every question that can appear on this project, including archived ones (the page decides). */
+export const listQuestionsForProject = (projectId: number) =>
+  all<Question>(
+    "SELECT * FROM questions WHERE project_id IS NULL OR project_id = ? ORDER BY category_id, position, id",
+    projectId
+  );
+
+export const getQuestion = (id: number) => one<Question>("SELECT * FROM questions WHERE id = ?", id);
+
+export function addQuestion(input: { category_id: number; text: string; kind: QuestionKind; project_id: number | null }): Question {
+  const { p } = one<{ p: number | null }>("SELECT MAX(position) AS p FROM questions WHERE category_id = ?", input.category_id)!;
+  const id = Number(
+    run(
+      "INSERT INTO questions (category_id, text, kind, position, project_id) VALUES (?, ?, ?, ?, ?)",
+      input.category_id,
+      input.text,
+      input.kind,
+      (p ?? 0) + 10,
+      input.project_id
+    ).lastInsertRowid
+  );
+  return getQuestion(id)!;
 }
 
-export function deleteEvent(id: number) {
-  db().prepare("DELETE FROM events WHERE id = ?").run(id);
-}
-
-// ---- questions ----
-
-export function addQuestion(input: { event_id: number; name: string; email: string; body: string }) {
-  db()
-    .prepare("INSERT INTO questions (event_id, name, email, body) VALUES (?, ?, ?, ?)")
-    .run(input.event_id, input.name, input.email, input.body);
-}
-
-export function listQuestions(eventId: number, status?: QuestionStatus): QuestionRow[] {
-  if (status) {
-    return db()
-      .prepare("SELECT * FROM questions WHERE event_id = ? AND status = ? ORDER BY created_at, id")
-      .all(eventId, status) as unknown as QuestionRow[];
+export function updateQuestion(id: number, input: { text: string; kind: QuestionKind; category_id: number }) {
+  const q = getQuestion(id);
+  if (!q) return;
+  if (q.category_id !== input.category_id) {
+    const { p } = one<{ p: number | null }>("SELECT MAX(position) AS p FROM questions WHERE category_id = ?", input.category_id)!;
+    run("UPDATE questions SET position = ? WHERE id = ?", (p ?? 0) + 10, id);
   }
-  return db()
-    .prepare("SELECT * FROM questions WHERE event_id = ? ORDER BY created_at, id")
-    .all(eventId) as unknown as QuestionRow[];
+  run("UPDATE questions SET text = ?, kind = ?, category_id = ? WHERE id = ?", input.text, input.kind, input.category_id, id);
 }
 
-export function setQuestionStatus(id: number, eventId: number, status: QuestionStatus) {
-  db().prepare("UPDATE questions SET status = ? WHERE id = ? AND event_id = ?").run(status, id, eventId);
+export const setQuestionArchived = (id: number, archived: boolean) =>
+  run("UPDATE questions SET archived = ? WHERE id = ?", archived ? 1 : 0, id);
+
+export const deleteProjectQuestion = (id: number, projectId: number) =>
+  run("DELETE FROM questions WHERE id = ? AND project_id = ?", id, projectId);
+
+export function moveQuestion(id: number, dir: "up" | "down") {
+  const q = getQuestion(id);
+  if (!q) return;
+  const list = all<Question>(
+    "SELECT * FROM questions WHERE category_id = ? AND project_id IS ? ORDER BY position, id",
+    q.category_id,
+    q.project_id
+  );
+  const i = list.findIndex((x) => x.id === id);
+  const j = dir === "up" ? i - 1 : i + 1;
+  if (j < 0 || j >= list.length) return;
+  swapPositions("questions", list[i], list[j]);
 }
+
+// ---------- projects ----------
+
+interface ProjectRow extends Omit<Project, "answers" | "led_walls"> {
+  answers: string;
+  led_walls: string;
+}
+
+function parse(row: ProjectRow): Project {
+  let answers: Record<string, Answer> = {};
+  let walls: LedWall[] = [];
+  try { answers = JSON.parse(row.answers); } catch {}
+  try { walls = sanitizeWalls(JSON.parse(row.led_walls)); } catch {}
+  return { ...row, answers, led_walls: walls };
+}
+
+export const listProjects = () =>
+  all<ProjectRow>("SELECT * FROM projects ORDER BY (start_date = ''), start_date DESC, id DESC").map(parse);
+
+export function getProject(id: number): Project | undefined {
+  const row = one<ProjectRow>("SELECT * FROM projects WHERE id = ?", id);
+  return row && parse(row);
+}
+
+export function createProject(meta: ProjectMeta): number {
+  return Number(
+    run(
+      "INSERT INTO projects (op_number, name, client, start_date, end_date) VALUES (?, ?, ?, ?, ?)",
+      meta.op_number,
+      meta.name,
+      meta.client,
+      meta.start_date,
+      meta.end_date
+    ).lastInsertRowid
+  );
+}
+
+export function saveProject(id: number, meta: ProjectMeta, answers: Record<string, Answer>, walls: LedWall[]) {
+  run(
+    `UPDATE projects SET op_number = ?, name = ?, client = ?, start_date = ?, end_date = ?,
+            answers = ?, led_walls = ?, updated_at = datetime('now') WHERE id = ?`,
+    meta.op_number,
+    meta.name,
+    meta.client,
+    meta.start_date,
+    meta.end_date,
+    JSON.stringify(answers),
+    JSON.stringify(walls),
+    id
+  );
+}
+
+export const deleteProject = (id: number) => run("DELETE FROM projects WHERE id = ?", id);

@@ -2,7 +2,7 @@
   "name": "eventquestions",
   "version": "0.1.0",
   "private": true,
-  "description": "Collect audience questions before an event, then review and export them.",
+  "description": "Show info sheets: PM call notes, checklist and LED wall planning for each show.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
