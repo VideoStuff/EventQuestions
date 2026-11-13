@@ -27,7 +27,7 @@ The sidebar on each show says whether the latest changes have been downloaded, a
   - **Custom panel**: enter the pixel pitch and panel size in mm (and optionally watts per panel).
   - Specs and rounding match [led-wall-calc](https://github.com/VideoStuff/led-wall-calc) and PixelPlanner, including the 9 ft → 6 panels high rule.
 - **Projection screen planner:** as many screens as the show needs. Pick a common size (16:9, 16:10 or wide blend screens) or type the exact height and width in feet, then choose the projector resolution (1920 × 1080, 1920 × 1200 or 3840 × 2160). With the projector filling the screen's height, it shows the screen's **apparent width in pixels** (width × projector pixels high ÷ height), pixels per foot and aspect ratio. It also gives the **number of projectors** across and, for blends, the estimated **overlap** at each blend in pixels and feet: the fewest projectors that leave at least 15% of a projector's width at each blend, with overlap = (projectors × projector width − apparent width) ÷ (projectors − 1).
-  - **+ Add projector** on a screen picks a projector (the Panasonic and Barco models from AV Calcs with their rated lumens, or custom lumens), screen gain and single or double stacking. It shows brightness in **footlamberts** (lumens × gain ÷ image area in sq ft, as in AV Calcs; for blends, the area one projector lights) and nits, rated good at 50+ fL, fair at 30–50 and low under 30, plus the lumens per projector needed for 50 fL.
+  - **+ Add projector** on a screen picks a projector (the Panasonic and Barco models from AV Calcs with their rated lumens, or custom lumens), screen gain and single or double stacking. It shows brightness in **footlamberts** (lumens × gain ÷ image area in sq ft, as in AV Calcs; for blends, the area one projector lights) and nits for one projector (double stacked also shows the pair's combined brightness), rated good at 50+ fL, fair at 30–50 and low under 30, plus the lumens per projector needed for 50 fL.
 - **Print / PDF** view of the whole sheet with an LED wall table.
 - **Duplicate** a show (under **More** at the bottom of a sheet) to start a similar one.
 
@@ -43,6 +43,7 @@ The version number shows next to **Show Sheets** at the top of every page, on pr
 
 | Version | Changes |
 |---|---|
+| v1.6 | Cleaner layout: categories are collapsible panels (open ones are remembered; Expand all / Collapse all), and LED walls and projection screens collapse to a one-line summary. Double-stacked projectors show one projector's brightness, with the stacked pair's combined brightness underneath. |
 | v1.5 | Projection screens: add a projector (models and lumens from AV Calcs, or custom lumens), screen gain and double stacking; shows footlamberts, nits and recommended lumens. |
 | v1.4 | Projection screens show the number of projectors and the estimated blend overlap (pixels and feet) instead of a warning. |
 | v1.3 | Version number shown at the top of the app and on printouts. |

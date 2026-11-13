@@ -5,6 +5,7 @@ import { hasAnswer, questionsFor, type Answer, type Bank, type Question, type Sh
 import LedWalls from "./LedWalls";
 import ProjectionScreens from "./ProjectionScreens";
 import { go } from "../router";
+import { useOpenSet } from "../ui";
 
 export const needsDownload = (s: Show) => !s.downloadedAt || s.updatedAt > s.downloadedAt;
 
@@ -18,6 +19,17 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
   const byCat = (cid: string) => questions.filter((q) => q.categoryId === cid);
   const done = questions.filter((q) => hasAnswer(q, answers[q.id])).length;
   const unsaved = needsDownload(show);
+
+  const sections = bank.categories.filter((c) => byCat(c.id).length || c.special);
+  const { open, toggle, setAll } = useOpenSet("show-sheets:open-sections", [bank.categories[0]?.id ?? ""]);
+  const jump = (id: string) => {
+    toggle(id, true);
+    requestAnimationFrame(() => document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+  const plannerSummary = (special?: string) =>
+    special === "led" && walls.length ? `${walls.length} wall${walls.length > 1 ? "s" : ""}`
+    : special === "projection" && screens.length ? `${screens.length} screen${screens.length > 1 ? "s" : ""}`
+    : "";
 
   const save = () => {
     downloadShow(show, bank);
@@ -34,18 +46,20 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
             : "File is up to date"}
         </div>
         <div className="muted small">{done} of {questions.length} filled</div>
+        <div className="row toc-tools">
+          <button type="button" className="link small" onClick={() => setAll(sections.map((c) => c.id))}>Expand all</button>
+          <button type="button" className="link small" onClick={() => setAll([])}>Collapse all</button>
+        </div>
         <nav>
-          {bank.categories.map((c) => {
+          {sections.map((c) => {
             const qs = byCat(c.id);
-            if (!qs.length && !c.special) return null;
             const n = qs.filter((q) => hasAnswer(q, answers[q.id])).length;
+            const extra = plannerSummary(c.special);
             return (
-              <a key={c.id} href={`#cat-${c.id}`} onClick={(e) => { e.preventDefault(); document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth" }); }}>
+              <a key={c.id} href={`#cat-${c.id}`} className={open.has(c.id) ? "is-open" : ""} onClick={(e) => { e.preventDefault(); jump(c.id); }}>
                 <span>{c.name}</span>
                 <span className={`count ${qs.length && n === qs.length ? "full" : ""}`}>
-                  {c.special === "led" && walls.length ? `${walls.length} wall${walls.length > 1 ? "s" : ""} · ` : ""}
-                  {c.special === "projection" && screens.length ? `${screens.length} screen${screens.length > 1 ? "s" : ""} · ` : ""}
-                  {n}/{qs.length}
+                  {extra && `${extra} · `}{n}/{qs.length}
                 </span>
               </a>
             );
@@ -55,7 +69,7 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
       </aside>
 
       <div className="sheet">
-        <section className="card">
+        <section className="card show-meta">
           <div className="grid2">
             <label>OP Number<input value={meta.op_number} maxLength={50} onChange={(e) => setMeta({ op_number: e.target.value })} /></label>
             <label>Show name<input value={meta.name} maxLength={200} onChange={(e) => setMeta({ name: e.target.value })} /></label>
@@ -66,14 +80,24 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
           </div>
         </section>
 
-        {bank.categories.map((c) => {
+        {sections.map((c) => {
           const qs = byCat(c.id);
-          if (!qs.length && !c.special) return null;
           const text = qs.filter((q) => q.kind === "text");
           const checks = qs.filter((q) => q.kind === "check");
+          const n = qs.filter((q) => hasAnswer(q, answers[q.id])).length;
+          const isOpen = open.has(c.id);
+          const extra = plannerSummary(c.special);
           return (
-            <section key={c.id} id={`cat-${c.id}`} className="card category">
-              <h2>{c.name}</h2>
+            <section key={c.id} id={`cat-${c.id}`} className={`category ${isOpen ? "open" : ""}`}>
+              <h2>
+                <button type="button" className="cat-head" aria-expanded={isOpen} aria-controls={`body-${c.id}`} onClick={() => toggle(c.id)}>
+                  <span className="chev" aria-hidden="true">›</span>
+                  <span className="cat-title">{c.name}</span>
+                  {extra && <span className="pill">{extra}</span>}
+                  <span className={`count ${qs.length && n === qs.length ? "full" : ""}`}>{n}/{qs.length}</span>
+                </button>
+              </h2>
+              {isOpen && <div className="cat-body" id={`body-${c.id}`}>
 
               {c.special === "led" && <LedWalls walls={walls} onChange={(w) => patchShow(update, show.id, { walls: w })} />}
               {c.special === "projection" && (
@@ -117,6 +141,7 @@ export default function ShowEditor({ show, bank, update }: { show: Show; bank: B
                   addQuestion(update, { categoryId: c.id, text, kind }, everyShow ? undefined : show.id);
                 }}
               />
+              </div>}
             </section>
           );
         })}

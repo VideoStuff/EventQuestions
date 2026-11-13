@@ -102,12 +102,20 @@ export interface Brightness {
   total: number;
   /** Area lit by one projector position, sq ft. */
   areaSqFt: number;
+  /** Brightness from one projector. */
   ftl: number;
   nits: number;
+  /** Brightness from the stacked pair (same as ftl when not stacked). */
+  ftlCombined: number;
+  nitsCombined: number;
   /** Lumens one projector should have to reach TARGET_FTL. */
   recommendedLumens: number;
-  rating: "good" | "fair" | "low";
+  rating: Rating;
+  ratingCombined: Rating;
 }
+
+export type Rating = "good" | "fair" | "low";
+const rate = (ftl: number): Rating => (ftl >= 50 ? "good" : ftl >= 30 ? "fair" : "low");
 
 /**
  * Brightness on screen, as in AV_Calcs: fL = lumens × gain ÷ image area (sq ft).
@@ -123,7 +131,7 @@ export function brightness(s: ProjScreen, c: Extract<ScreenCalc, { ok: true }>):
   const hFt = c.heightMm / 304.8;
   const wFt = c.projectors === 1 ? c.widthMm / 304.8 : c.projW / c.pxPerFt;
   const areaSqFt = wFt * hFt;
-  const ftl = (lumens * stack * gain) / areaSqFt;
+  const ftl = (lumens * gain) / areaSqFt;
   return {
     modelName: model ? model.name : "Custom projector",
     lumens,
@@ -133,8 +141,11 @@ export function brightness(s: ProjScreen, c: Extract<ScreenCalc, { ok: true }>):
     areaSqFt,
     ftl,
     nits: ftl * NITS_PER_FTL,
+    ftlCombined: ftl * stack,
+    nitsCombined: ftl * stack * NITS_PER_FTL,
     recommendedLumens: Math.round((areaSqFt * TARGET_FTL) / gain / stack),
-    rating: ftl >= 50 ? "good" : ftl >= 30 ? "fair" : "low",
+    rating: rate(ftl),
+    ratingCombined: rate(ftl * stack),
   };
 }
 

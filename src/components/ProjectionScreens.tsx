@@ -1,4 +1,6 @@
 import { fmt, ftIn } from "../led";
+import CardShell from "./CardShell";
+import { useCardOpen } from "../ui";
 import {
   PROJECTORS,
   SCREEN_SIZES,
@@ -18,6 +20,7 @@ const GROUPS = [...new Set(SCREEN_SIZES.map((s) => s.group))];
 
 export default function ProjectionScreens({ screens, onChange }: { screens: ProjScreen[]; onChange: (s: ProjScreen[]) => void }) {
   const update = (i: number, patch: Partial<ProjScreen>) => onChange(screens.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  const cards = useCardOpen();
   let total = 0;
   const byModel = new Map<string, number>();
   for (const s of screens) {
@@ -37,15 +40,18 @@ export default function ProjectionScreens({ screens, onChange }: { screens: Proj
         <ScreenCard
           key={s.id}
           screen={s}
+          open={cards.open.has(s.id)}
+          onToggle={() => cards.toggle(s.id)}
           onChange={(p) => update(i, p)}
           onRemove={() => confirm(`Remove ${s.name || "this screen"}?`) && onChange(screens.filter((_, j) => j !== i))}
           onDuplicate={() => {
             const copy = { ...s, id: newScreen(0).id, name: `${s.name} copy` };
+            cards.toggle(copy.id, true);
             onChange([...screens.slice(0, i + 1), copy, ...screens.slice(i + 1)]);
           }}
         />
       ))}
-      <button type="button" className="secondary no-print" onClick={() => onChange([...screens, newScreen(screens.length + 1)])}>
+      <button type="button" className="secondary no-print" onClick={() => { const ns = newScreen(screens.length + 1); cards.toggle(ns.id, true); onChange([...screens, ns]); }}>
         + Add projection screen
       </button>
       {(total > 1 || byModel.size > 0) && (
@@ -64,7 +70,11 @@ function ScreenCard({
   onChange,
   onRemove,
   onDuplicate,
+  open,
+  onToggle,
 }: {
+  open: boolean;
+  onToggle: () => void;
   screen: ProjScreen;
   onChange: (p: Partial<ProjScreen>) => void;
   onRemove: () => void;
@@ -72,19 +82,29 @@ function ScreenCard({
 }) {
   const c = calcScreen(s);
   const preset = presetFor(s);
+  const b = c.ok ? brightness(s, c) : null;
 
   return (
-    <div className="wall">
+    <CardShell
+      title={s.name || "Screen"}
+      summary={c.ok
+        ? [sizeText(c), `${fmt(c.apparentW)} × ${fmt(c.projH)}`, `${b ? b.total : c.projectors} projector${(b ? b.total : c.projectors) > 1 ? "s" : ""}`,
+           b ? `${b.modelName} · ${b.ftl.toFixed(1)} fL${b.stack > 1 ? ` (${b.ftlCombined.toFixed(1)} stacked)` : ""}` : "", c.qty > 1 ? `×${c.qty}` : ""].filter(Boolean).join(" · ")
+        : "Not finished"}
+      open={open}
+      onToggle={onToggle}
+      onDuplicate={onDuplicate}
+      onRemove={onRemove}
+    >
       <div className="wall-head">
-        <input className="wall-name" value={s.name} maxLength={100} onChange={(e) => onChange({ name: e.target.value })} aria-label="Screen name" />
+        <label className="name-field">
+          Name
+          <input className="wall-name" value={s.name} maxLength={100} onChange={(e) => onChange({ name: e.target.value })} />
+        </label>
         <label className="qty">
           Qty
           <input inputMode="numeric" value={s.qty} onChange={(e) => onChange({ qty: e.target.value })} />
         </label>
-        <div className="row no-print">
-          <button type="button" className="link" onClick={onDuplicate}>Duplicate</button>
-          <button type="button" className="link danger-text" onClick={onRemove}>Remove</button>
-        </div>
       </div>
 
       <div className="grid4 screen-inputs">
@@ -168,7 +188,7 @@ function ScreenCard({
         Screen notes
         <input value={s.notes} maxLength={2000} onChange={(e) => onChange({ notes: e.target.value })} placeholder="Front / rear, surface, position, rigging…" />
       </label>
-    </div>
+    </CardShell>
   );
 }
 
@@ -240,14 +260,20 @@ function ProjectorBlock({ s, c, onChange }: { s: ProjScreen; c: Extract<ReturnTy
         <>
           <dl className="wall-result">
             <div className="hero">
-              <dt>Brightness</dt>
+              <dt>Brightness{b.stack > 1 ? " (one projector)" : ""}</dt>
               <dd className={`ftl ${b.rating}`}>{b.ftl.toFixed(1)} fL</dd>
               <dd className="muted small">{fmt(Math.round(b.nits))} nits · {b.rating === "good" ? "meets" : "below"} {TARGET_FTL} fL</dd>
+              {b.stack > 1 && (
+                <dd className="small combined">
+                  Stacked pair: <strong className={`ftl ${b.ratingCombined}`}>{b.ftlCombined.toFixed(1)} fL</strong>
+                  <span className="muted"> · {fmt(Math.round(b.nitsCombined))} nits · {b.ratingCombined === "good" ? "meets" : "below"} {TARGET_FTL} fL</span>
+                </dd>
+              )}
             </div>
             <div className="hero">
               <dt>Recommended</dt>
               <dd>{fmt(b.recommendedLumens)} lm</dd>
-              <dd className="muted small">per projector{b.stack > 1 ? " (stacked pair)" : ""} for {TARGET_FTL} fL</dd>
+              <dd className="muted small">{b.stack > 1 ? `each, for ${TARGET_FTL} fL from the stacked pair` : `per projector for ${TARGET_FTL} fL`}</dd>
             </div>
             <div className="hero">
               <dt>Projectors</dt>

@@ -81,7 +81,7 @@ export default function PrintView({ show, bank }: { show: Show; bank: Bank }) {
                         <td>{r.projectors > 1 ? <>{fmt(r.overlapPx)} px<div className="muted small">{ftIn(r.overlapMm)}</div></> : "—"}</td>
                         <td>{(() => {
                           const b = brightness(s, r);
-                          return b ? <>{b.ftl.toFixed(1)} fL<div className="muted small">{b.total} × {b.modelName}, {fmt(b.lumens)} lm, gain {b.gain}</div></> : "—";
+                          return b ? <>{b.ftl.toFixed(1)} fL{b.stack > 1 && <> per projector<div className="small">{b.ftlCombined.toFixed(1)} fL stacked</div></>}<div className="muted small">{b.total} × {b.modelName}, {fmt(b.lumens)} lm, gain {b.gain}</div></> : "—";
                         })()}</td>
                       </tr>
                     ) : (

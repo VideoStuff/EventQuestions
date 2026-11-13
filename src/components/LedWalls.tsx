@@ -1,3 +1,5 @@
+import CardShell from "./CardShell";
+import { useCardOpen } from "../ui";
 import {
   PANEL_OPTIONS,
   aspect,
@@ -15,6 +17,7 @@ import {
 export default function LedWalls({ walls, onChange }: { walls: LedWall[]; onChange: (w: LedWall[]) => void }) {
   const update = (i: number, patch: Partial<LedWall>) => onChange(walls.map((w, j) => (j === i ? { ...w, ...patch } : w)));
   const t = totals(walls);
+  const cards = useCardOpen();
 
   return (
     <div className="led">
@@ -22,16 +25,19 @@ export default function LedWalls({ walls, onChange }: { walls: LedWall[]; onChan
         <WallCard
           key={w.id}
           wall={w}
+          open={cards.open.has(w.id)}
+          onToggle={() => cards.toggle(w.id)}
           onChange={(p) => update(i, p)}
           onRemove={() => confirm(`Remove ${w.name || "this wall"}?`) && onChange(walls.filter((_, j) => j !== i))}
           onDuplicate={() => {
             const copy = { ...w, id: newWall(0).id, name: `${w.name} copy` };
+            cards.toggle(copy.id, true);
             onChange([...walls.slice(0, i + 1), copy, ...walls.slice(i + 1)]);
           }}
         />
       ))}
 
-      <button type="button" className="secondary no-print" onClick={() => onChange([...walls, newWall(walls.length + 1)])}>
+      <button type="button" className="secondary no-print" onClick={() => { const nw = newWall(walls.length + 1); cards.toggle(nw.id, true); onChange([...walls, nw]); }}>
         + Add LED wall
       </button>
 
@@ -56,7 +62,11 @@ function WallCard({
   onChange,
   onRemove,
   onDuplicate,
+  open,
+  onToggle,
 }: {
+  open: boolean;
+  onToggle: () => void;
   wall: LedWall;
   onChange: (p: Partial<LedWall>) => void;
   onRemove: () => void;
@@ -71,17 +81,25 @@ function WallCard({
   );
 
   return (
-    <div className="wall">
+    <CardShell
+      title={w.name || "LED wall"}
+      summary={r.ok
+        ? `${r.panelName} · ${r.cols} × ${r.rows} panels · ${ftIn(r.widthMm)} × ${ftIn(r.heightMm)} · ${r.resX} × ${r.resY}${r.qty > 1 ? ` · ×${r.qty}` : ""}`
+        : "Not finished"}
+      open={open}
+      onToggle={onToggle}
+      onDuplicate={onDuplicate}
+      onRemove={onRemove}
+    >
       <div className="wall-head">
-        <input className="wall-name" value={w.name} maxLength={100} onChange={(e) => onChange({ name: e.target.value })} aria-label="Wall name" />
+        <label className="name-field">
+          Name
+          <input className="wall-name" value={w.name} maxLength={100} onChange={(e) => onChange({ name: e.target.value })} />
+        </label>
         <label className="qty">
           Qty
           <input inputMode="numeric" value={w.qty} onChange={(e) => onChange({ qty: e.target.value })} />
         </label>
-        <div className="row no-print">
-          <button type="button" className="link" onClick={onDuplicate}>Duplicate</button>
-          <button type="button" className="link danger-text" onClick={onRemove}>Remove</button>
-        </div>
       </div>
 
       <div className="wall-inputs">
@@ -155,7 +173,7 @@ function WallCard({
         Wall notes
         <input value={w.notes} maxLength={2000} onChange={(e) => onChange({ notes: e.target.value })} placeholder="Ground / flown, position, content…" />
       </label>
-    </div>
+    </CardShell>
   );
 }
 
